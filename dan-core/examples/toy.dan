@@ -1,0 +1,97 @@
+choice FORMAT{
+	FAT16Format
+	SinglezZipFormat
+	PngFormat
+}
+
+struct FORMAT_ZIP@(encoding = LittleIndian){
+	struct{
+		LocalDeflatedFile ldf
+		PNG png = parse
+	} _
+	DirEntry entries
+	EndOfDir _		
+}
+
+struct FAT16Format(Type format)@(encoding = LittleIndian){
+	Reserved Reserved
+  	BPB20 block = reserved.boot.block2_0 // types of derived things can be inferred
+  	FAT[] fatArea(block)[block.fatCount]
+  	RootDirectory[] root(format, block, fatArea.offset, root.offset)[block.maxRootDirectoryEntryCount]
+}
+
+struct Reserved{
+	BootSector boot
+	int size = boot.biosBlock.block_2_0.bytesPerLogicalSector  * (boot.biosBlock.block_2_0.reservedSectorCount - 1) // How to do coercion? or polymorphic operators?
+	u8[] restData[size]
+}
+
+// We might want to define the serial data (def's) in a different region from derived data. 
+// However, they are interdependent. If we do so, we have to calculate these dependencies in order to generate correct code. 
+// Next another encoding for Reserved, where we need to calculate a dependency graph
+
+struct Reserved2{
+  BootSector boot
+  u8[] restData[size]
+
+  int size = boot.biosBlock.block_2_0.bytesPerLogicalSector  * (boot.biosBlock.block_2_0.reservedSectorCount - 1) // How to do coercion? or polymorphic operators?
+}
+
+// Maybe offsets are reseolved earlier in the call graph?
+
+struct BootSector{
+  u24 jumpInstruction
+  u8[] oemName[8]
+  BiosParameterBlock biosBlock
+  u8[] bootCode[0x1fd - bootCode.offset] // a self offset link. Alternatively, it could be a `offset` special variable as `this` in Java
+  u8 physicalDriveNumber
+//  u16 bootSectorSignature?(== 0xaa55)
+}
+
+struct FAT(BPB20 bootSector){
+  u8[] table[bootSector.logicalSectorsPerFat * bootSector.bytesPerLogicalSector]   // might need to skip
+}
+
+choice RootDirectory (Type format, BootSector bpe, int firstFat, int firstRoot){
+  EmptyEntry
+  VFATLongFileName
+  DirectoryEntry(format, bpe, firstFat, firstRoot)
+}   
+
+//alias u8[] EmptyEntry[0x20]?(== 0x0 )
+
+//native Token parse(Type typ, u8[] content) 
+
+struct DirectoryEntry(Type nestedFilesParser, BootSector bpe, int firstFat, int firstRoot){
+  u8[] shortFileName[8]
+  u8[] extension[3]
+  u8 attributes
+  u8[] _[2] // ignored fields
+  u16[] _[6] // another way of ignoring fields
+  u16 fileStartCluster
+  u32 fileSize
+  FileCluster fileData(fileStartCluster, bpe.clusterSize, firstRoot + bpe.block_2_0.maxRootDirectoryEntryCount)
+  
+    
+  // need to think about this syntax around nested parsing, and the cat & ranges syntax
+
+  Token fileEntry = parse(nestedFilesParser, fileData.fullContent[:fileSize])  // filterEntry has the top token type
+ }
+
+choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, offset clusterStart)
+    @(offset = clusterStart + (myCluster * clusterSize)){
+  abstract u8[] fullContent  // this is not ambiguous anymore, so maybe abstract keyword is not needed
+  
+  struct{
+    // pending how to express this
+    //u16 nextCluster?(!= 0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    FileCluster nextFileCluster(nextCluster, clusterSize, clusterStart)
+    u8[] fullContent = fileContents + nextFileCluster.fullContent
+  }
+  struct{
+    u16 nextCluster ?=(0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    u8[] fullContent = fileContents
+  }
+}
