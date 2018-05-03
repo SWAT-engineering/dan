@@ -45,7 +45,7 @@ struct BootSector{
   BiosParameterBlock biosBlock
   u8[] bootCode[0x1fd - bootCode.offset] // a self offset link. Alternatively, it could be a `offset` special variable as `this` in Java
   u8 physicalDriveNumber
-//  u16 bootSectorSignature?(== 0xaa55)
+  u16 bootSectorSignature?(== 0xaa55)
 }
 
 struct FAT(BPB20 bootSector){
@@ -84,13 +84,13 @@ choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, offset clus
   
   struct{
     // pending how to express this
-    //u16 nextCluster?(!= 0xFFF8)
+    u16 nextCluster?(!= 0xFFF8)
     u8[] fileContents[(myCluster * clusterSize) - 2]
     FileCluster nextFileCluster(nextCluster, clusterSize, clusterStart)
     u8[] fullContent = fileContents + nextFileCluster.fullContent
   }
   struct{
-    u16 nextCluster ?=(0xFFF8)
+    u16 nextCluster ? (== 0xFFF8)
     u8[] fileContents[(myCluster * clusterSize) - 2]
     u8[] fullContent = fileContents
   }

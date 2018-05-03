@@ -43,8 +43,8 @@ syntax ParserSpec
 	;	
 	
 syntax SideCondition 
-	= "?" Expr
-	| "?=" Expr
+	= "?" "(" Expr ")"
+	| "?" "(" UnaryExpr ")"
 	;
 	
 syntax ParserSpecInChoice
@@ -65,12 +65,26 @@ syntax Expr
 	| "(" Expr ")"
 	| "-" Expr
 	> Expr "==" Expr
+	| Expr "!=" Expr
+	| Expr "\<=" Expr
+	| Expr "\<" Expr
+	| Expr "\>=" Expr
+	| Expr "\>" Expr  
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
 	> Expr "." Id
 	| Expr "[" Range "]"
 	;	
+	
+syntax UnaryExpr
+	= "==" Expr
+	| "!=" Expr
+	| "\<=" Expr
+	| "\<" Expr
+	| "\>=" Expr
+	| "\>" Expr
+	;  
 	
 syntax Range 
 	 = ":" Expr
