@@ -1,0 +1,13 @@
+## eclipse stuff
+bin/
+.metadata/
+
+
+## OS stuff
+.DS_Store
+.~*
+Thumbs.db
+
+
+## maven stuff
+target/
