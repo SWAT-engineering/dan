@@ -107,7 +107,7 @@ list[Message] validateDan(str name) {
     tb = newTBuilder(pt, config = getDanConfig());
     collect(pt, tb);
     tm = tb.build();
-    tm = validate(tm, isSubType=isSubType);
+    tm = validate(tm);
     return tm.messages;
 }
  value main() = validateDan("e1");
