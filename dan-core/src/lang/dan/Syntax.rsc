@@ -2,7 +2,8 @@ module lang::dan::Syntax
 
 extend lang::std::Layout;
 
-keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64";
+keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool";
+
 
 start syntax Program =
 	TopLevelDecl* declarations;
@@ -104,6 +105,9 @@ syntax AnonStruct
 	
 syntax Type
 	= Id
+	| "int"
+	| "str"
+	| "bool"
 	| "u8"
 	| "u16"
 	| "u32"
@@ -134,4 +138,5 @@ lexical UnicodeEscape
     | utf32: "\\" [U] (("0" [0-9 A-F a-f]) | "10") [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] // 24 bits 
     | ascii: "\\" [a] [0-7] [0-9A-Fa-f]
     ;
-	
+
+
