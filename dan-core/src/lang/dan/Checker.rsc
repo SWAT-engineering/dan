@@ -14,7 +14,8 @@ data AType
 	
 data TokenType 
 	= refTy(str name)
-	| anonTy(lrel[str, AType] fields)
+	| consType(AType formals)
+	| anonTy(AType fields)
 	| u8()
 	| u16()
 	| u32()
@@ -30,13 +31,14 @@ data PrimType
 data IdRole
     = structId()
     | fieldId()
+    | consId()
     ;
     	
-bool isSubType(AType _, topTy()) = true;
-bool isSubType(tokenTy(_), tokenTy("Token")) = true;
-bool isSubType(AType t1, AType t2) = true
+bool danIsSubType(AType _, topTy()) = true;
+bool danIsSubType(tokenTy(_), tokenTy("Token")) = true;
+bool danIsSubType(AType t1, AType t2) = true
 	when t1 == t2;
-default bool isSubType(AType _, AType _) = false;
+default bool danIsSubType(AType _, AType _) = false;
 
 str prettyPrintAType(basicTy(integer())) = "integer";
 str prettyPrintAType(basicTy(string())) = "string";
@@ -64,50 +66,94 @@ AType transType((Type) `bool`) = basicTy(boolean());
 
 // ----  Collect definitions, uses and requirements -----------------------
 
-void collect(current: (Program) `<TopLevelDecl* decls>`, TBuilder tb){
-    tb.enterScope(current);
-        collect(decls, tb);
-    tb.leaveScope(current);
+void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
+    c.enterScope(current);
+        collect(decls, c);
+    c.leaveScope(current);
 }
  
-void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  TBuilder tb) {
-     tb.define("<id>", structId(), id, defType(tokenTy(refTy("<id>"))));
-     structScope = tb.getScope(); 
-     tb.enterScope(current); {
-        collect(decls, tb);
+void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
+     c.define("<id>", structId(), id, defType(tokenTy(refTy("<id>"))));
+     collect(id, formals, c);
+     c.enterScope(current); {
+     	collect(formals, c);
+     	collect(decls, c);
     }
-    tb.leaveScope(current);
+    c.leaveScope(current);
 }
 
-
-void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  TBuilder tb) {
-	tb.define("<id>", fieldId(), id, defType(transType(ty)));
-	collect(expr, tb);
-	tb.require("good_assignment", current, [expr],
-        () { subtype(getType(expr), transType(ty)) || reportError(expr, "Expression sould be `<ty>`, found <fmt(expr)>"); });
-}     
-
-void collect(current: (Expr) `<StringLiteral lit>`, TBuilder tb){
-    tb.fact(current, basicTy(string()));
+void collect(current:(Formal) `<Type ty> <Id id>`, Collector c){
+	c.define("<id>", fieldId(), id, defType(transType(ty)));
 }
 
-void collect(current: (Expr) `<NatLiteral nat>`, TBuilder tb){
-    tb.fact(current, basicTy(integer()));
+list[AType] lookupConsTypeParameters(Collector c, Tree current, str id) {
+	c.leaveScope(current);
+	scope = c.getScope();
+	c.enterScope(current);
+    if ({<_, _, _,_, defType(consType(listType(pars)))>} <- getDefinitions(id, scope, {consId()})) {
+    	return pars;
+    }
+    else {
+        reportError(current, "Cannot find struct <id>");
+    }
+}
+
+void collect(Id id, current:(Formals) `(<{Formal ","}* formals>)`, Collector c){
+	c.define("<id>", consId(), id, defType(consType(listType([transType(f.typ) | Formal f <-formals]))));
+	
+}
+
+void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collector c) {
+	c.define("<id>", fieldId(), id, defType(transType(ty)));
+	collect(expr, c);
+	c.require("good assignment", current, [expr],
+        void (Solver s) { s.requireSubtype(s.getType(expr), transType(ty), error(current, "Expression should be `<transType(ty)>`, found <s.getType(expr)>")); });
+}    
+
+void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
+	c.use(ty, { consId(), structId() });
+	if ("<id>" != "_"){
+		c.define("<id>", fieldId(), id, defType(transType(ty)));
+	}
+   	collect(args, c);
+	//returnType = useClassType(scope, cons.id);
+    c.require("arguments in <args>", current, [arg | arg <- args],
+         void (Solver s) { 
+         	if ({_, consType(listType(pars)), _} := s.getType(ty)){
+         	    s.requireEquals(size(pars), size(args), "Formal and actual parameters have different sizes.");
+         		for (<arg, p> <- args <- pars)
+         	 		 s.requireSubtype(getType(arg), p, "Argument <arg> has incorrect type.");            	
+         	}else{
+         		throw error(current, "<ty> has not been declared as a struct.");
+         	};
+		 }); 
+}
+
+void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
+    c.fact(current, basicTy(string()));
+}
+
+void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
+    c.fact(current, basicTy(integer()));
+}
+
+void collect(current: (Expr) `<Id id>`, Collector c){
+    // TODO
 }
 
 // ----  Examples & Tests --------------------------------
+TModel danTModelFromTree(Tree pt, bool debug){
+    return collectAndSolve(pt, config=getDanConfig(), debug=debug);
+}
+
 private TypePalConfig getDanConfig() = tconfig(
-    isSubType = isSubType
+    isSubType = danIsSubType
 );
 
 public Program sampleDan(str name) = parse(#Program, |project://dan-core/examples/<name>.dan|);
-                     
-list[Message] validateDan(str name) {
+
+list[Message] runDan(str name, bool debug = false) {
     Tree pt = sampleDan(name);
-    tb = newTBuilder(pt, config = getDanConfig());
-    collect(pt, tb);
-    tm = tb.build();
-    tm = validate(tm);
+    TModel tm = danTModelFromTree(pt, debug);
     return tm.messages;
 }
- value main() = validateDan("e1");

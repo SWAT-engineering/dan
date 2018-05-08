@@ -1,0 +1,10 @@
+struct Address(str c){
+	int housenumber = 221
+	str city = "put here reference to variable c" 
+}
+
+struct Person{
+	int age = 20
+	str name = "Ignacio"
+	Address address("Amsterdam")
+}

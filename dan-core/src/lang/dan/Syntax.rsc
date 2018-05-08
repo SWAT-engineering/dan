@@ -29,7 +29,7 @@ syntax Formals
 	= "(" {Formal "," }* formals  ")"
 	;
 	
-syntax Formal = Type Id;
+syntax Formal = Type typ Id id;
 	
 syntax Arguments
 	= "(" {Expr ","}* args  ")"
@@ -38,22 +38,15 @@ syntax Arguments
 syntax Size
 	= "[" Expr "]"
 	;	
-	
-syntax ParserSpec
-	= DId Arguments? Size? SideCondition?
-	;	
-	
+		
 syntax SideCondition 
 	= "?" "(" Expr ")"
 	| "?" "(" UnaryExpr ")"
 	;
 	
-syntax ParserSpecInChoice
-	= Type Arguments? Size?
-	;		
 	
 syntax DeclInStruct
-	= Type ParserSpec 
+	= Type DId Arguments? Size? SideCondition? 
 	| Type Id "=" Expr
 	;
 	
@@ -96,7 +89,7 @@ syntax Range
 	
 syntax DeclInChoice
 	= "abstract" Type Id
-	| ParserSpecInChoice
+	| Type Arguments? Size?
 	;
 
 syntax AnonStruct
