@@ -9,12 +9,12 @@ data AType
 	= basicTy(PrimType primType)
 	| listTy(AType ty)
 	| tokenTy(TokenType tokenType)
+	| consTy(AType formals)
 	| topTy()
 	;
 	
 data TokenType 
 	= refTy(str name)
-	| consType(AType formals)
 	| anonTy(AType fields)
 	| u8()
 	| u16()
@@ -35,7 +35,7 @@ data IdRole
     ;
     	
 bool danIsSubType(AType _, topTy()) = true;
-bool danIsSubType(tokenTy(_), tokenTy("Token")) = true;
+bool danIsSubType(tokenTy(_), tokenTy(refTy("Token"))) = true;
 bool danIsSubType(AType t1, AType t2) = true
 	when t1 == t2;
 default bool danIsSubType(AType _, AType _) = false;
@@ -68,65 +68,89 @@ AType transType((Type) `bool`) = basicTy(boolean());
 
 void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
     c.enterScope(current);
-        collect(decls, c);
+    	collect(decls, c);
     c.leaveScope(current);
 }
  
+Tree fixLocation(Tree tr, loc newLoc) =
+	visit(tr) {
+		case Tree t => t[@\loc = relocate(t@\loc,newLoc)]
+        	when t has \loc
+	 }; 
+ 
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
-     c.define("<id>", structId(), id, defType(tokenTy(refTy("<id>"))));
-     collect(id, formals, c);
+     c.define("<id>", structId(), current, defType(tokenTy(refTy("<id>"))));
+     //collect(id, formals, c);
      c.enterScope(current); {
-     	collect(formals, c);
+     	actualFormals = [af | f <- formals, af <- f.formals];
+     	c.define("__<id>", consId(), id, defType(actualFormals, AType(Solver s) {
+     		return consTy(atypeList([s.getType(a) | a <- actualFormals]));
+     	}));
+     	collect(actualFormals, c);
+     	
      	collect(decls, c);
     }
     c.leaveScope(current);
 }
 
 void collect(current:(Formal) `<Type ty> <Id id>`, Collector c){
-	c.define("<id>", fieldId(), id, defType(transType(ty)));
-}
-
-list[AType] lookupConsTypeParameters(Collector c, Tree current, str id) {
-	c.leaveScope(current);
-	scope = c.getScope();
-	c.enterScope(current);
-    if ({<_, _, _,_, defType(consType(listType(pars)))>} <- getDefinitions(id, scope, {consId()})) {
-    	return pars;
-    }
-    else {
-        reportError(current, "Cannot find struct <id>");
-    }
-}
-
-void collect(Id id, current:(Formals) `(<{Formal ","}* formals>)`, Collector c){
-	c.define("<id>", consId(), id, defType(consType(listType([transType(f.typ) | Formal f <-formals]))));
-	
+	c.define("<id>", fieldId(), current, defType(ty));
+	collect(ty, c);
 }
 
 void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collector c) {
-	c.define("<id>", fieldId(), id, defType(transType(ty)));
+	c.define("<id>", fieldId(), id, defType(ty));
+	collect(ty, c);
 	collect(expr, c);
 	c.require("good assignment", current, [expr],
-        void (Solver s) { s.requireSubtype(s.getType(expr), transType(ty), error(current, "Expression should be `<transType(ty)>`, found <s.getType(expr)>")); });
+        void (Solver s) { s.requireSubtype(s.getType(expr), s.getType(ty), error(current, "Expression should be `<transType(ty)>`, found <s.getType(expr)>")); });
 }    
 
-void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
+void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments args> <Size? size> <SideCondition? cond>`,  Collector c) {
+	if ("<id>" != "_"){
+		c.define("<id>", fieldId(), id, defType(ty));
+	}
+	collect(ty, c);
+	currentScope = c.getScope();
+	
+	c.require("check constructor args", id, [ty] + [a | a<- args.args], void (Solver s) {
+		s.requireTrue(s.getType(ty) is tokenTy, error(current, "You can only"));
+		conId = fixLocation(parse(#Type, "__<ty>"), id@\loc);
+		ct = s.getTypeInType(s.getType(ty), conId, {consId()}, currentScope);
+		argTypes = atypeList([ s.getType(a) | a <- args.args ]);
+		s.requireSubtype(ct.formals, argTypes, error(current, "wrong subtyping"));
+	});
+	
+	collect(ty, args, c);
+}
+
+void collect(current:(Type)`u8`, Collector c) {
+	c.fact(current, tokenTy(u8()));
+}
+
+void collect(current:(Type)`str`, Collector c) {
+	c.fact(current, basicTy(string()));
+}
+
+void collect(current:(Type)`bool`, Collector c) {
+	c.fact(current, basicTy(boolean()));
+}  
+
+void collect(current:(Type)`int`, Collector c) {
+	c.fact(current, basicTy(integer()));
+}  
+
+void collect(current:(Type)`<Id i>`, Collector c) {
+	c.use(i, {structId()}); 
+} 
+
+
+void collect(current:(DeclInStruct) `<Type ty> <DId id> <Size? size> <SideCondition? cond>`,  Collector c) {
 	c.use(ty, { consId(), structId() });
 	if ("<id>" != "_"){
 		c.define("<id>", fieldId(), id, defType(transType(ty)));
 	}
-   	collect(args, c);
-	//returnType = useClassType(scope, cons.id);
-    c.require("arguments in <args>", current, [arg | arg <- args],
-         void (Solver s) { 
-         	if ({_, consType(listType(pars)), _} := s.getType(ty)){
-         	    s.requireEquals(size(pars), size(args), "Formal and actual parameters have different sizes.");
-         		for (<arg, p> <- args <- pars)
-         	 		 s.requireSubtype(getType(arg), p, "Argument <arg> has incorrect type.");            	
-         	}else{
-         		throw error(current, "<ty> has not been declared as a struct.");
-         	};
-		 }); 
+
 }
 
 void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
@@ -146,8 +170,12 @@ TModel danTModelFromTree(Tree pt, bool debug){
     return collectAndSolve(pt, config=getDanConfig(), debug=debug);
 }
 
+tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(tokenTy(refTy(str name))) = <true, name, {structId()}>;
+tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
+
 private TypePalConfig getDanConfig() = tconfig(
-    isSubType = danIsSubType
+    isSubType = danIsSubType,
+    getTypeNameAndRole = danGetTypeNameAndRole
 );
 
 public Program sampleDan(str name) = parse(#Program, |project://dan-core/examples/<name>.dan|);
