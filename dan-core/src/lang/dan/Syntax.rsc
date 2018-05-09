@@ -8,7 +8,7 @@ keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u6
 start syntax Program =
 	TopLevelDecl* declarations;
 
-lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
+lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
 lexical DId = Id | "_";
 	

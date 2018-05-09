@@ -83,7 +83,7 @@ void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? a
      //collect(id, formals, c);
      c.enterScope(current); {
      	actualFormals = [af | f <- formals, af <- f.formals];
-     	c.define("__<id>", consId(), id, defType(actualFormals, AType(Solver s) {
+     	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
      		return consTy(atypeList([s.getType(a) | a <- actualFormals]));
      	}));
      	collect(actualFormals, c);
@@ -115,7 +115,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments args> <Size? 
 	
 	c.require("check constructor args", id, [ty] + [a | a<- args.args], void (Solver s) {
 		s.requireTrue(s.getType(ty) is tokenTy, error(current, "You can only"));
-		conId = fixLocation(parse(#Type, "__<ty>"), id@\loc);
+		conId = fixLocation(parse(#Type, "<ty>"), id@\loc);
 		ct = s.getTypeInType(s.getType(ty), conId, {consId()}, currentScope);
 		argTypes = atypeList([ s.getType(a) | a <- args.args ]);
 		s.requireSubtype(ct.formals, argTypes, error(current, "wrong subtyping"));
@@ -175,7 +175,11 @@ tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole
 
 private TypePalConfig getDanConfig() = tconfig(
     isSubType = danIsSubType,
-    getTypeNameAndRole = danGetTypeNameAndRole
+    getTypeNameAndRole = danGetTypeNameAndRole,
+    mayOverload = bool(set[loc] defs, map[loc, Define] defines){
+    	// TODO do it just for the constructors 
+    	return true;
+    }
 );
 
 public Program sampleDan(str name) = parse(#Program, |project://dan-core/examples/<name>.dan|);
