@@ -106,20 +106,24 @@ void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collecto
         void (Solver s) { s.requireSubtype(s.getType(expr), s.getType(ty), error(current, "Expression should be `<transType(ty)>`, found <s.getType(expr)>")); });
 }    
 
-void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments args> <Size? size> <SideCondition? cond>`,  Collector c) {
+void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
 	if ("<id>" != "_"){
 		c.define("<id>", fieldId(), id, defType(ty));
 	}
 	collect(ty, c);
 	currentScope = c.getScope();
-	
-	c.require("check constructor args", id, [ty] + [a | a<- args.args], void (Solver s) {
-		s.requireTrue(s.getType(ty) is tokenTy, error(current, "You can only"));
-		conId = fixLocation(parse(#Type, "<ty>"), id@\loc);
-		ct = s.getTypeInType(s.getType(ty), conId, {consId()}, currentScope);
-		argTypes = atypeList([ s.getType(a) | a <- args.args ]);
-		s.requireSubtype(ct.formals, argTypes, error(current, "wrong subtyping"));
-	});
+	if (aargs <- args){
+		for (a <- aargs.args){
+			collect(a, c);
+		}
+		c.require("check constructor args", id, [ty] + aargs.args, void (Solver s) {
+			s.requireTrue(s.getType(ty) is tokenTy, error(current, "You can only"));
+			conId = fixLocation(parse(#Type, "<ty>"), id@\loc);
+			ct = s.getTypeInType(s.getType(ty), conId, {consId()}, currentScope);
+			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
+			s.requireSubtype(ct.formals, argTypes, error(current, "wrong subtyping"));
+		});
+	}
 	
 	collect(ty, args, c);
 }
