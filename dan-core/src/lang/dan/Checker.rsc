@@ -183,7 +183,7 @@ void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
 }
 
 void collect(current: (Expr) `<Id id>`, Collector c){
-    // TODO
+    c.use(id, {variableId(), fieldId()});
 }
 
 // ----  Examples & Tests --------------------------------

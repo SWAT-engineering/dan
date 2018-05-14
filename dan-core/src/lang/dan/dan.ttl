@@ -20,11 +20,23 @@ test D3 [[
 	struct Person{
 		int age = 20
 		str name = "Ignacio"
+		Address address("Amsterdam")
+	}
+]]
+
+test D4 [[
+    struct Address(str c){
+		int housenumber = 221
+		str city = "put here reference to variable c" 
+	}
+	struct Person{
+		int age = 20
+		str name = "Ignacio"
 		Address address("Amsterdam")[1]
 	}
 ]] expect { "Setting size on a non-list element" }
 
-test D4 [[
+test D5 [[
     struct Address(str c){
 		int housenumber = 221
 		str city = "put here reference to variable c" 
@@ -35,3 +47,17 @@ test D4 [[
 		Address[] address("Amsterdam")
 	}
 ]]
+
+test D6 [[
+    struct Address(str c){
+		int housenumber = 221
+		str city = c
+	}
+]] 
+
+test D7 [[
+    struct Address(bool c){
+		int housenumber = 221
+		str city = c
+	}
+]] expect { "Expression should be str, found bool" }
