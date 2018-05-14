@@ -40,9 +40,9 @@ bool danIsSubType(AType t1, AType t2) = true
 	when t1 == t2;
 default bool danIsSubType(AType _, AType _) = false;
 
-str prettyPrintAType(basicTy(integer())) = "integer";
-str prettyPrintAType(basicTy(string())) = "string";
-str prettyPrintAType(basicTy(boolean())) = "boolean";
+str prettyPrintAType(basicTy(integer())) = "int";
+str prettyPrintAType(basicTy(string())) = "str";
+str prettyPrintAType(basicTy(boolean())) = "bool";
 str prettyPrintAType(listTy(_)) = "list";
 str prettyPrintAType(tokenTy(refTy(name))) = "token " + name;
 str prettyPrintAType(tokenTy(anonTy(_))) = "anonymous token";
@@ -103,7 +103,7 @@ void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collecto
 	collect(ty, c);
 	collect(expr, c);
 	c.require("good assignment", current, [expr],
-        void (Solver s) { s.requireSubtype(s.getType(expr), s.getType(ty), error(current, "Expression should be `<transType(ty)>`, found <s.getType(expr)>")); });
+        void (Solver s) { s.requireSubtype(s.getType(expr), s.getType(ty), error(current, "Expression should be <ty>, found <prettyPrintAType(s.getType(expr))>")); });
 }    
 
 void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
@@ -187,7 +187,7 @@ void collect(current: (Expr) `<Id id>`, Collector c){
 }
 
 // ----  Examples & Tests --------------------------------
-TModel danTModelFromTree(Tree pt, bool debug){
+TModel danTModelFromTree(Tree pt, bool debug = false){
     return collectAndSolve(pt, config=getDanConfig(), debug=debug);
 }
 
@@ -207,6 +207,13 @@ public Program sampleDan(str name) = parse(#Program, |project://dan-core/example
 
 list[Message] runDan(str name, bool debug = false) {
     Tree pt = sampleDan(name);
-    TModel tm = danTModelFromTree(pt, debug);
+    TModel tm = danTModelFromTree(pt, debug = debug);
     return tm.messages;
 }
+ 
+bool testDan(bool debug = false) {
+    return runTests([|project://dan-core/src/lang/dan/dan.ttl|], #start[Program], TModel (Tree t) {
+        return danTModelFromTree(t, debug=debug);
+    });
+}
+
