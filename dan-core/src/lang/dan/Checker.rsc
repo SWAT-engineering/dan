@@ -112,20 +112,32 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 	collect(ty, c);
 	currentScope = c.getScope();
+	for (aargs <- args, a <- aargs.args){
+		collect(a, c);
+	}
+	for (sz <-size){
+		collect(sz.expr, c);
+	}
 	if (aargs <- args){
-		for (a <- aargs.args){
-			collect(a, c);
-		}
-		c.require("check constructor args", id, [ty] + aargs.args, void (Solver s) {
-			s.requireTrue(s.getType(ty) is tokenTy, error(current, "You can only"));
-			conId = fixLocation(parse(#Type, "<ty>"), id@\loc);
-			ct = s.getTypeInType(s.getType(ty), conId, {consId()}, currentScope);
+		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
+			s.requireTrue(s.getType(ty) is tokenTy || listTy(tokenTy(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
+			ty_ = top-down-break visit (ty){
+				case (Type)`<Type t> []` => t
+				case Type t => t
+			};
+			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
+			println(conId);
+			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
 			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
-			s.requireSubtype(ct.formals, argTypes, error(current, "wrong subtyping"));
+			s.requireSubtype(ct.formals, argTypes, error(aargs, "Wrong type of arguments"));
 		});
 	}
-	
-	collect(ty, args, c);
+	if (sz <- size){
+		c.require("size argument", current, [ty], void (Solver s) {
+			s.requireTrue(s.getType(ty) is listTy, error(current, "Setting size on a non-list element"));
+			//s.requireEqual(s.getType(sz.expr), basicTy(integer()), error(current, "Size must be an integer"));
+		});
+	};
 }
 
 void collect(current:(Type)`u8`, Collector c) {
@@ -147,6 +159,11 @@ void collect(current:(Type)`int`, Collector c) {
 void collect(current:(Type)`<Id i>`, Collector c) {
 	c.use(i, {structId()}); 
 } 
+
+void collect(current:(Type)`<Type t> [ ]`, Collector c) {
+	collect(t, c);
+	c.calculate("list type", current, [t], AType(Solver s) { return listTy(s.getType(t)); });
+}  
 
 
 void collect(current:(DeclInStruct) `<Type ty> <DId id> <Size? size> <SideCondition? cond>`,  Collector c) {

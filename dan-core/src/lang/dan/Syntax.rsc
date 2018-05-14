@@ -36,7 +36,7 @@ syntax Arguments
 	;
 	
 syntax Size
-	= "[" Expr "]"
+	= "[" Expr expr "]"
 	;	
 		
 syntax SideCondition 
