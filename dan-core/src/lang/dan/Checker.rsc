@@ -118,6 +118,9 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	for (sz <-size){
 		collect(sz.expr, c);
 	}
+	for (sc <- cond){
+		collect(sc, c);
+	}
 	if (aargs <- args){
 		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
 			s.requireTrue(s.getType(ty) is tokenTy || listTy(tokenTy(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
@@ -137,8 +140,35 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 			s.requireTrue(s.getType(ty) is listTy, error(current, "Setting size on a non-list element"));
 			//s.requireEqual(s.getType(sz.expr), basicTy(integer()), error(current, "Size must be an integer"));
 		});
-	};
+	}
+	if (sc <- cond){
+		switch(sc){
+			case (SideCondition) `? ( <UnaryOperator uo> <Expr e> )`:{
+				c.require("side condition", sc, [ty] + [e], void (Solver s) {
+					s.requireEqual(s.getType(ty), s.getType(e), error(sc, "Unary expression in side condition must have the same type as declaration"));
+				});
+			}
+			case (SideCondition) `? ( <Expr e> )`:{
+				c.require("side condition", sc, [ty, e], void (Solver s) {
+					s.requireEqual(s.getType(e), basicTy(boolean()), error(sc, "Side condition must be boolean"));
+				});
+			}
+		}
+	}
 }
+
+void collect(current:(SideCondition) `? ( <Expr e>)`, Collector c){
+	collect(e, c);
+}
+
+void collect(current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+	collect(e, c);
+}
+
+void collect(current:(UnaryExpr) `\> <Expr e>`, Collector c){
+	collect(e, c);
+}
+
 
 void collect(current:(Type)`u8`, Collector c) {
 	c.fact(current, tokenTy(u8()));

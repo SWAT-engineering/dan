@@ -61,3 +61,17 @@ test D7 [[
 		str city = c
 	}
 ]] expect { "Expression should be str, found bool" }
+
+test D8 [[
+    struct Address(){
+		int housenumber ?(> 25)
+	}
+]]
+
+test D8 [[
+    struct Address(){
+		bool housenumber ?(> 25)
+	}
+	expect { "Unary expression in side condition must have the same type as declaration" }
+]]
+

@@ -72,14 +72,17 @@ syntax Expr
 	| Expr "[" Range "]"
 	;
 		
+syntax UnaryOperator 
+	= "==" 
+	| "!="
+	| "\<="
+	| "\<"
+	| "\>="
+	| "\>"
+	;   	
 	
 syntax UnaryExpr
-	= "==" Expr
-	| "!=" Expr
-	| "\<=" Expr
-	| "\<" Expr
-	| "\>=" Expr
-	| "\>" Expr
+	= UnaryOperator Expr e
 	;  
 	
 syntax Range 
