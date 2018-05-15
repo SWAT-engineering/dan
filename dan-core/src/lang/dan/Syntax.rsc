@@ -58,13 +58,13 @@ syntax Expr
 	| StringLiteral
 	| Id Arguments
 	| "(" Expr ")"
-	| "-" Expr
+	| Expr "." Id
+	> "-" Expr
 	> ComparatorExpr
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
-	> Expr "." Id
-	| Expr "[" Range "]"
+	> Expr "[" Range "]"
 	;
 	
 syntax ComparatorExpr

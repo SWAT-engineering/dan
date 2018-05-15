@@ -67,8 +67,14 @@ AType transType((Type) `bool`) = basicTy(boolean());
 
 // ----  Collect definitions, uses and requirements -----------------------
 
+data Global = global(loc() scope); 
+
+Global global = global(loc() { throw "error";});
+
 void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
     c.enterScope(current);
+    currentScope = c.getScope();
+    global.scope = loc(){ return currentScope; };
     	collect(decls, c);
     c.leaveScope(current);
 }
@@ -78,6 +84,8 @@ Tree fixLocation(Tree tr, loc newLoc) =
 		case Tree t => t[@\loc = relocate(t@\loc,newLoc)]
         	when t has \loc
 	 }; 
+	 
+
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
      c.define("<id>", structId(), current, defType(tokenTy(refTy("<id>"))));
@@ -221,6 +229,16 @@ void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
 void collect(current: (Expr) `<Id id>`, Collector c){
     c.use(id, {variableId(), fieldId()});
 }
+
+void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
+	collect(e, c);
+	println(global);
+	println(global.scope());
+	c.calculate("field type", current, [e], AType(Solver s) {
+		return s.getTypeInType(s.getType(e), field, {fieldId()}, global.scope()); });
+
+}
+
 
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);

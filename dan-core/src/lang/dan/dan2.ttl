@@ -5,3 +5,15 @@ test D1 [[
 	}
 ]]
 
+test D2 [[
+    struct Person{
+    	int offset
+    	Address address
+		u8[] bootCode[0x1fd - address.number]
+	}
+	
+	struct Address{
+		int number
+	}
+]]
+
