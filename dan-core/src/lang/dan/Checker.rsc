@@ -67,14 +67,14 @@ AType transType((Type) `bool`) = basicTy(boolean());
 
 // ----  Collect definitions, uses and requirements -----------------------
 
-data Global = global(loc() scope); 
+data Global = global(loc scope); 
 
-Global global = global(loc() { throw "error";});
+Global global = global(|project://dummy.dummy|);
 
 void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
     c.enterScope(current);
     currentScope = c.getScope();
-    global.scope = loc(){ return currentScope; };
+    global.scope = currentScope;
     	collect(decls, c);
     c.leaveScope(current);
 }
@@ -232,10 +232,8 @@ void collect(current: (Expr) `<Id id>`, Collector c){
 
 void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 	collect(e, c);
-	println(global);
-	println(global.scope());
 	c.calculate("field type", current, [e], AType(Solver s) {
-		return s.getTypeInType(s.getType(e), field, {fieldId()}, global.scope()); });
+		return s.getTypeInType(s.getType(e), field, {fieldId()}, global.scope); });
 
 }
 
