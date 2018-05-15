@@ -1,0 +1,7 @@
+test D1 [[
+    struct Person{
+    	int offset
+		u8[] bootCode[0x1fd - offset]
+	}
+]]
+

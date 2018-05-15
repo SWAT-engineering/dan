@@ -1,6 +1,7 @@
 module lang::dan::Checker
 
 import lang::dan::Syntax;
+import util::Math;
 
 extend analysis::typepal::TypePal;
 extend analysis::typepal::TypePalConfig;
@@ -136,9 +137,9 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 		});
 	}
 	if (sz <- size){
-		c.require("size argument", current, [ty], void (Solver s) {
+		c.require("size argument", current, [ty] + [sz.expr], void (Solver s) {
 			s.requireTrue(s.getType(ty) is listTy, error(current, "Setting size on a non-list element"));
-			//s.requireEqual(s.getType(sz.expr), basicTy(integer()), error(current, "Size must be an integer"));
+			s.requireEqual(s.getType(sz.expr), basicTy(integer()), error(current, "Size must be an integer"));
 		});
 	}
 	if (sc <- cond){
@@ -209,6 +210,10 @@ void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
     c.fact(current, basicTy(string()));
 }
 
+void collect(current: (Expr) `<HexIntegerLiteral nat>`, Collector c){
+    c.fact(current, basicTy(integer()));
+}
+
 void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
     c.fact(current, basicTy(integer()));
 }
@@ -226,6 +231,16 @@ void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector 
 		});
 }
 
+void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    c.require("binary expression", current, [e1, e2], void (Solver s) {
+			s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
+			s.requireEqual(s.getType(e1), basicTy(integer()), error(current, "Operands must be of type integer"));
+			s.fact(current, basicTy(integer()));
+		});
+}
+
+
 AType customCalculate((UnaryOperator) `==`, AType t, Solver s) = basicTy(boolean());
 
 AType customCalculate(UnaryOperator uo, AType t, Solver s) = {
@@ -233,6 +248,8 @@ AType customCalculate(UnaryOperator uo, AType t, Solver s) = {
 		return basicTy(boolean());
 	}
 	when (UnaryOperator) `\>` := uo || (UnaryOperator) `\>=` := uo || (UnaryOperator) `\<` := uo || (UnaryOperator) `\<=` := uo;
+
+	
 
 // ----  Examples & Tests --------------------------------
 TModel danTModelFromTree(Tree pt, bool debug = false){
@@ -259,8 +276,8 @@ list[Message] runDan(str name, bool debug = false) {
     return tm.messages;
 }
  
-bool testDan(bool debug = false) {
-    return runTests([|project://dan-core/src/lang/dan/dan.ttl|], #start[Program], TModel (Tree t) {
+bool testDan(int n, bool debug = false) {
+    return runTests([|project://dan-core/src/lang/dan/dan<util::Math::toString(n)>.ttl|], #start[Program], TModel (Tree t) {
         return danTModelFromTree(t, debug=debug);
     });
 }
