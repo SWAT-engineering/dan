@@ -123,7 +123,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 	if (aargs <- args){
 		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
-			s.requireTrue(s.getType(ty) is tokenTy || listTy(tokenTy(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
+			s.requireTrue(tokenTy(refTy(_)):= s.getType(ty)  || listTy(tokenTy(refTy(_))) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
 			ty_ = top-down-break visit (ty){
 				case (Type)`<Type t> []` => t
 				case Type t => t
