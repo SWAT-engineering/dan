@@ -59,18 +59,16 @@ syntax Expr
 	| Id Arguments
 	| "(" Expr ")"
 	| "-" Expr
-	> Expr "==" Expr
-	| Expr "!=" Expr
-	| Expr "\<=" Expr
-	| Expr "\<" Expr
-	| Expr "\>=" Expr
-	| Expr "\>" Expr  
+	> ComparatorExpr
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
 	> Expr "." Id
 	| Expr "[" Range "]"
 	;
+	
+syntax ComparatorExpr
+	= Expr UnaryOperator Expr; 
 		
 syntax UnaryOperator 
 	= "==" 

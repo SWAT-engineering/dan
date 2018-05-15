@@ -149,7 +149,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 				});
 			}
 			case (SideCondition) `? ( <Expr e> )`:{
-				c.require("side condition", sc, [ty, e], void (Solver s) {
+				c.require("side condition", sc, [e], void (Solver s) {
 					s.requireEqual(s.getType(e), basicTy(boolean()), error(sc, "Side condition must be boolean"));
 				});
 			}
@@ -165,7 +165,7 @@ void collect(current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collect
 	collect(e, c);
 }
 
-void collect(current:(UnaryExpr) `\> <Expr e>`, Collector c){
+void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 	collect(e, c);
 }
 
@@ -215,6 +215,23 @@ void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
 void collect(current: (Expr) `<Id id>`, Collector c){
     c.use(id, {variableId(), fieldId()});
 }
+
+void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    c.require("binary expression", current, [e1, e2], void (Solver s) {
+			s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
+			AType t = customCalculate(u, s.getType(e1), s);
+			s.fact(current, t);
+		});
+}
+
+AType customCalculate((UnaryOperator) `==`, AType t, Solver s) = basicTy(boolean());
+
+AType customCalculate(UnaryOperator uo, AType t, Solver s) = {
+		s.requireEqual(t, basicTy(integer()), error(uo, "Comparator operands must act upon integers"));
+		return basicTy(boolean());
+	}
+	when (UnaryOperator) `\>` := uo || (UnaryOperator) `\>=` := uo || (UnaryOperator) `\<` := uo || (UnaryOperator) `\<=` := uo;
 
 // ----  Examples & Tests --------------------------------
 TModel danTModelFromTree(Tree pt, bool debug = false){
