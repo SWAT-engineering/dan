@@ -149,6 +149,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 				});
 			}
 			case (SideCondition) `? ( <Expr e> )`:{
+				c.define("this", variableId(), current, defType(ty));
 				c.require("side condition", sc, [e], void (Solver s) {
 					s.requireEqual(s.getType(e), basicTy(boolean()), error(sc, "Side condition must be boolean"));
 				});

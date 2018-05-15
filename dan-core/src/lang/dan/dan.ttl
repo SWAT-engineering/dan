@@ -99,4 +99,29 @@ test D13 [[
 	}
 ]]
 
+test D14 [[
+    struct Address{
+    	bool housenumber ?("2" == "1")
+	}
+]]
+
+test D15 [[
+    struct Address{
+    	int foo
+    	bool housenumber ?(foo > 1)
+	}
+]]
+
+test D16 [[
+    struct Address{
+    	bool foo
+    	bool housenumber ?(foo > 1)
+	}
+]] expect { "Operands must have the same type" }
+
+test D17 [[
+    struct Address{
+    	int housenumber ?(this > 1)
+	}
+]]
 
