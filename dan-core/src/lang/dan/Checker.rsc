@@ -35,11 +35,29 @@ data IdRole
     | consId()
     ;
     	
-bool danIsSubType(AType _, topTy()) = true;
-bool danIsSubType(tokenTy(_), tokenTy(refTy("Token"))) = true;
-bool danIsSubType(AType t1, AType t2) = true
+//bool danIsSubType(AType _, topTy()) = true;
+//bool danIsSubType(tokenTy(_), tokenTy(refTy("Token"))) = true;
+//bool danIsSubType(AType t1, AType t2) = true
+//	when t1 == t2;
+//default bool danIsSubType(AType _, AType _) = false;
+
+bool isConvertible(tokenTy(u8()), basicTy(integer)) = true;
+bool isConvertible(tokenTy(u8()), basicTy(string)) = true;
+bool isConvertible(tokenTy(u16()), basicTy(integer)) = true;
+bool isConvertible(tokenTy(u16()), basicTy(string)) = true;
+bool isConvertible(tokenTy(u32()), basicTy(integer)) = true;
+bool isConvertible(tokenTy(u32()), basicTy(string)) = true;
+bool isConvertible(tokenTy(u64()), basicTy(integer)) = true;
+bool isConvertible(tokenTy(u64()), basicTy(string)) = true;
+bool isConvertible(listTy(t), basicTy(integer)) = danIsSubType(t, basicTy(integer));
+bool isConvertible(listTy(t), basicTy(string)) = danIsSubType(t, basicTy(string));
+
+
+bool isConvertible(AType t1, AType t2) = true
 	when t1 == t2;
-default bool danIsSubType(AType _, AType _) = false;
+default bool isConvertible(AType _, AType _) = false;
+
+
 
 str prettyPrintAType(basicTy(integer())) = "int";
 str prettyPrintAType(basicTy(string())) = "str";
@@ -76,7 +94,7 @@ bool isAssignableToInteger(tokenTy(u32())) = true;
 bool isAssignableToInteger(tokenTy(u64())) = true;
 bool isAssignableToInteger(listTy(t)) = false 
 	when t !:= basicTy(integer());
-default bool isAssignableToInteger(AType _) = false;	
+default bool isAssignableToInteger(AType _) = false;
 
 // ----  Collect definitions, uses and requirements -----------------------
 
@@ -309,7 +327,7 @@ tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
 private TypePalConfig getDanConfig() = tconfig(
-    isSubType = danIsSubType,
+    isSubType = isConvertible,
     getTypeNameAndRole = danGetTypeNameAndRole,
     mayOverload = bool(set[loc] defs, map[loc, Define] defines){
     	// TODO do it just for the constructors 
