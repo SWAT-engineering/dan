@@ -69,6 +69,14 @@ bool isTokenType(tokenTy(_)) = true;
 bool isTokenType(listTy(t)) = isTokenType(t); 
 default bool isTokenType(AType t) = false;
 
+bool assignableToInteger(basicTy(integer())) = true;
+bool assignableToInteger(tokenTy(u8())) = true;
+bool assignableToInteger(tokenTy(u16())) = true;
+bool assignableToInteger(tokenTy(u32())) = true;
+bool assignableToInteger(tokenTy(u64())) = true;
+bool assignableToInteger(listTy(t)) = false 
+	when t !:= basicTy(integer());
+
 // ----  Collect definitions, uses and requirements -----------------------
 
 data Global = global(loc scope); 
@@ -160,9 +168,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	if (sc <- cond){
 		switch(sc){
 			case (SideCondition) `? ( <UnaryOperator uo> <Expr e> )`:{
-				c.require("side condition", sc, [ty] + [e], void (Solver s) {
-					s.requireEqual(s.getType(ty), s.getType(e), error(sc, "Unary expression in side condition must have the same type as declaration"));
-				});
+				c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 			}
 			case (SideCondition) `? ( <Expr e> )`:{
 				c.define("this", variableId(), current, defType(ty));
@@ -247,19 +253,18 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 
 void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 	collect(e, c);
-	c.calculate("field type", current, [e], AType(Solver s) {
-		return s.getTypeInType(s.getType(e), field, {fieldId()}, global.scope); });
+	//currentScope = c.getScope();
+	c.useViaType(e, field, {fieldId()});
+	c.fact(current, field);
+	//c.calculate("field type", current, [e], AType(Solver s) {
+	//	return s.getTypeInType(s.getType(e), field, {fieldId()}, currentScope); });
 
 }
 
 
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    //c.require("binary expression", current, [e1, e2], void (Solver s) {
-	//		s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
-	//	}); 
-	// TODO Ask about best way to do this
-	c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
+    c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
 		s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
 		return customCalculate(u, s.getType(e1), s);
 	});
@@ -268,8 +273,8 @@ void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);
     c.calculate("binary expression", current, [e1, e2], AType (Solver s) {
-			s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
-			s.requireEqual(s.getType(e1), basicTy(integer()), error(current, "Operands must be of type integer"));
+			s.requireEqual(e1, e2, error(current, "Operands must have the same type"));
+			s.requireEqual(e1, basicTy(integer()), error(current, "Operands must be of type integer"));
 			return basicTy(integer());
 		});
 }
@@ -278,7 +283,7 @@ void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
 AType customCalculate((UnaryOperator) `==`, AType t, Solver s) = basicTy(boolean());
 
 AType customCalculate(UnaryOperator uo, AType t, Solver s) = {
-		s.requireEqual(t, basicTy(integer()), error(uo, "Comparator operands must act upon integers"));
+		s.requireTrue(assignableToInteger(basicTy(integer())), error(uo, "Comparator operands must act upon integers"));
 		return basicTy(boolean());
 	}
 	when (UnaryOperator) `\>` := uo || (UnaryOperator) `\>=` := uo || (UnaryOperator) `\<` := uo || (UnaryOperator) `\<=` := uo;

@@ -64,7 +64,7 @@ test D7 [[
 
 test D8 [[
     struct Address{
-		int housenumber ?(> 25)
+		u8 housenumber ?(> 25)
 	}
 ]]
 
