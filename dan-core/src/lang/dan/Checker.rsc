@@ -69,13 +69,14 @@ bool isTokenType(tokenTy(_)) = true;
 bool isTokenType(listTy(t)) = isTokenType(t); 
 default bool isTokenType(AType t) = false;
 
-bool assignableToInteger(basicTy(integer())) = true;
-bool assignableToInteger(tokenTy(u8())) = true;
-bool assignableToInteger(tokenTy(u16())) = true;
-bool assignableToInteger(tokenTy(u32())) = true;
-bool assignableToInteger(tokenTy(u64())) = true;
-bool assignableToInteger(listTy(t)) = false 
+bool isAssignableToInteger(basicTy(integer())) = true;
+bool isAssignableToInteger(tokenTy(u8())) = true;
+bool isAssignableToInteger(tokenTy(u16())) = true;
+bool isAssignableToInteger(tokenTy(u32())) = true;
+bool isAssignableToInteger(tokenTy(u64())) = true;
+bool isAssignableToInteger(listTy(t)) = false 
 	when t !:= basicTy(integer());
+default bool isAssignableToInteger(AType _) = false;	
 
 // ----  Collect definitions, uses and requirements -----------------------
 
@@ -168,7 +169,10 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	if (sc <- cond){
 		switch(sc){
 			case (SideCondition) `? ( <UnaryOperator uo> <Expr e> )`:{
-				c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
+				c.require("side condition", sc, [e], void (Solver s) {
+					s.requireTrue(isAssignableToInteger(s.getType(e)), error(sc, "Expression in unary side condition must have numeric type"));
+				});
+				//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 			}
 			case (SideCondition) `? ( <Expr e> )`:{
 				c.define("this", variableId(), current, defType(ty));
@@ -265,26 +269,32 @@ void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);
     c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
-		s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
-		return customCalculate(u, s.getType(e1), s);
+		customRequirement(u, s.getType(e1), s.getType(e2),s);
+		return basicTy(boolean());
 	});
 }
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);
     c.calculate("binary expression", current, [e1, e2], AType (Solver s) {
-			s.requireEqual(e1, e2, error(current, "Operands must have the same type"));
-			s.requireEqual(e1, basicTy(integer()), error(current, "Operands must be of type integer"));
 			return basicTy(integer());
 		});
 }
 
 
-AType customCalculate((UnaryOperator) `==`, AType t, Solver s) = basicTy(boolean());
+void customRequirement(uo:(UnaryOperator) `==`, AType t1, AType t2, Solver s) = {
+	s.requireTrue(isAssignableToInteger(t2) , error(uo, "Both expressions must be convertible to integers"));
+}
+when isAssignableToInteger(t1);
 
-AType customCalculate(UnaryOperator uo, AType t, Solver s) = {
-		s.requireTrue(assignableToInteger(basicTy(integer())), error(uo, "Comparator operands must act upon integers"));
-		return basicTy(boolean());
+void customRequirement(uo:(UnaryOperator) `==`, AType t1, AType t2, Solver s) = {
+	s.requireEqual(t1,t2, error(uo, "Operands must have the same type"));
+}
+when !isAssignableToInteger(t1);	 
+
+void customRequirement(UnaryOperator uo, AType t1, AType t2, Solver s) = {
+		s.requireTrue(isAssignableToInteger(t1), error(uo, "Comparator operands must act upon integers"));
+		s.requireTrue(isAssignableToInteger(t2), error(uo, "Comparator operands must act upon integers"));
 	}
 	when (UnaryOperator) `\>` := uo || (UnaryOperator) `\>=` := uo || (UnaryOperator) `\<` := uo || (UnaryOperator) `\<=` := uo;
 

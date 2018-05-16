@@ -70,19 +70,19 @@ test D8 [[
 
 test D9 [[
     struct Address{
-		bool housenumber ?(> 25)
+		Address housenumber ?(> 25)
 	}
-]]  expect { "Unary expression in side condition must have the same type as declaration" }
+]]  
 
 test D10 [[
     struct Address{
-    	bool housenumber ?(2 > 25)
+    	u8 housenumber ?(2 > 25)
 	}
 ]]
 
 test D11 [[
     struct Address{
-    	bool housenumber ?("2" > "25")
+    	u8 housenumber ?("2" > "25")
 	}
 ]] expect { "Comparator operands must act upon integers" }
 
@@ -95,33 +95,33 @@ test D12 [[
 
 test D13 [[
     struct Address{
-    	bool housenumber ?("2" == "1")
+    	u8 housenumber ?("2" == "1")
 	}
 ]]
 
 test D14 [[
     struct Address{
-    	bool housenumber ?("2" == "1")
+    	u8 housenumber ?("2" == "1")
 	}
 ]]
 
 test D15 [[
     struct Address{
-    	int foo
-    	bool housenumber ?(foo > 1)
+    	int foo = 5
+    	u8 housenumber ?(foo > 1)
 	}
 ]]
 
 test D16 [[
     struct Address{
-    	bool foo
-    	bool housenumber ?(foo > 1)
+    	Address foo
+    	u8 housenumber ?(foo == 4)
 	}
 ]] expect { "Operands must have the same type" }
 
 test D17 [[
     struct Address{
-    	int housenumber ?(this > 1)
+    	u8 housenumber ?(this > 1)
 	}
 ]]
 
