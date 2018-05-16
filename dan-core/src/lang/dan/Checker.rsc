@@ -120,6 +120,9 @@ void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collecto
 }    
 
 void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
+	c.require("declared type", ty, [ty], void(Solver s){
+		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type"));
+	});
 	if ("<id>" != "_"){
 		c.define("<id>", fieldId(), id, defType(ty));
 	}
@@ -237,7 +240,7 @@ void collect(current: (Expr) `<Id id>`, Collector c){
 void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	collect(e, c);
 	c.require("offset type", current, [e], void (Solver s) {
-		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offset"));
+		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offsets"));
 	}); 
 	c.fact(current, basicTy(integer()));
 }

@@ -1,19 +1,18 @@
 test D1 [[
     struct Person{
-    	int offset
+    	int offset = 5
 		u8[] bootCode[0x1fd - offset]
 	}
 ]]
 
 test D2 [[
     struct Person{
-    	int offset
     	Address address
 		u8[] bootCode[0x1fd - address.number]
 	}
 	
 	struct Address{
-		int number
+		int number = 5
 	}
 ]]
 
@@ -25,7 +24,7 @@ test D3 [[
 
 test D4 [[
     struct Person{
-    	int foo
+    	int foo = 5
     	u8[] bootCode[0x1fd - foo.offset]
 	}
-]]
+]] expect { "Only token types have offsets" }
