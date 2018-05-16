@@ -17,3 +17,15 @@ test D2 [[
 	}
 ]]
 
+test D3 [[
+    struct Person{
+    	u8[] bootCode[0x1fd - bootCode.offset]
+	}
+]]
+
+test D4 [[
+    struct Person{
+    	int foo
+    	u8[] bootCode[0x1fd - foo.offset]
+	}
+]]

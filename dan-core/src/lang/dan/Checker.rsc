@@ -65,6 +65,10 @@ AType transType((Type) `int`) = basicTy(integer());
 AType transType((Type) `str`) = basicTy(string());
 AType transType((Type) `bool`) = basicTy(boolean());
 
+bool isTokenType(tokenTy(_)) = true;
+bool isTokenType(listTy(t)) = isTokenType(t); 
+default bool isTokenType(AType t) = false;
+
 // ----  Collect definitions, uses and requirements -----------------------
 
 data Global = global(loc scope); 
@@ -228,6 +232,14 @@ void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
 
 void collect(current: (Expr) `<Id id>`, Collector c){
     c.use(id, {variableId(), fieldId()});
+}
+
+void collect(current: (Expr) `<Expr e>.offset`, Collector c){
+	collect(e, c);
+	c.require("offset type", current, [e], void (Solver s) {
+		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offset"));
+	}); 
+	c.fact(current, basicTy(integer()));
 }
 
 void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
