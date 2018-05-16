@@ -240,19 +240,22 @@ void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    c.require("binary expression", current, [e1, e2], void (Solver s) {
-			s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
-			AType t = customCalculate(u, s.getType(e1), s);
-			s.fact(current, t);
-		});
+    //c.require("binary expression", current, [e1, e2], void (Solver s) {
+	//		s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
+	//	}); 
+	// TODO Ask about best way to do this
+	c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
+		s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
+		return customCalculate(u, s.getType(e1), s);
+	});
 }
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    c.require("binary expression", current, [e1, e2], void (Solver s) {
+    c.calculate("binary expression", current, [e1, e2], AType (Solver s) {
 			s.requireEqual(s.getType(e1), s.getType(e2), error(current, "Operands must have the same type"));
 			s.requireEqual(s.getType(e1), basicTy(integer()), error(current, "Operands must be of type integer"));
-			s.fact(current, basicTy(integer()));
+			return basicTy(integer());
 		});
 }
 
