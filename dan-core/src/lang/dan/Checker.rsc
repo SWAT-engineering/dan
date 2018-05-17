@@ -7,26 +7,17 @@ extend analysis::typepal::TypePal;
 extend analysis::typepal::TypePalConfig;
 
 data AType
-	= basicTy(PrimType primType)
-	| listTy(AType ty)
-	| tokenTy(TokenType tokenType)
-	| consTy(AType formals)
-	| topTy()
-	;
-	
-data TokenType 
-	= refTy(str name)
-	| anonTy(AType fields)
+	= intType()
+	| strType()
+	| boolType()
+	| listType(AType ty)
+	| consType(AType formals)
+	| refType(str name)
+	| anonType(AType fields)
 	| u8()
 	| u16()
 	| u32()
 	| u64()
-	;
-	
-data PrimType
-	= integer()
-	| string()
-	| boolean()
 	;
 	
 data IdRole
@@ -36,21 +27,21 @@ data IdRole
     ;
     	
 //bool danIsSubType(AType _, topTy()) = true;
-//bool danIsSubType(tokenTy(_), tokenTy(refTy("Token"))) = true;
+//bool danIsSubType(_), refType("Token"))) = true;
 //bool danIsSubType(AType t1, AType t2) = true
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
 
-bool isConvertible(tokenTy(u8()), basicTy(integer)) = true;
-bool isConvertible(tokenTy(u8()), basicTy(string)) = true;
-bool isConvertible(tokenTy(u16()), basicTy(integer)) = true;
-bool isConvertible(tokenTy(u16()), basicTy(string)) = true;
-bool isConvertible(tokenTy(u32()), basicTy(integer)) = true;
-bool isConvertible(tokenTy(u32()), basicTy(string)) = true;
-bool isConvertible(tokenTy(u64()), basicTy(integer)) = true;
-bool isConvertible(tokenTy(u64()), basicTy(string)) = true;
-bool isConvertible(listTy(t), basicTy(integer)) = danIsSubType(t, basicTy(integer));
-bool isConvertible(listTy(t), basicTy(string)) = danIsSubType(t, basicTy(string));
+bool isConvertible(u8(), intType()) = true;
+bool isConvertible(u8(), strType()) = true;
+bool isConvertible(u16(), intType()) = true;
+bool isConvertible(u16(), strType()) = true;
+bool isConvertible(u32(), intType()) = true;
+bool isConvertible(u32(), strType()) = true;
+bool isConvertible(u64(), intType()) = true;
+bool isConvertible(u64(), strType()) = true;
+bool isConvertible(listType(t), intType()) = danIsSubType(t, intType());
+bool isConvertible(listType(t), strType()) = danIsSubType(t, strType());
 
 
 bool isConvertible(AType t1, AType t2) = true
@@ -59,42 +50,49 @@ default bool isConvertible(AType _, AType _) = false;
 
 
 
-str prettyPrintAType(basicTy(integer())) = "int";
-str prettyPrintAType(basicTy(string())) = "str";
-str prettyPrintAType(basicTy(boolean())) = "bool";
-str prettyPrintAType(listTy(_)) = "list";
-str prettyPrintAType(tokenTy(refTy(name))) = "token " + name;
-str prettyPrintAType(tokenTy(anonTy(_))) = "anonymous token";
-str prettyPrintAType(tokenTy(u8())) = "u8 token";
-str prettyPrintAType(tokenTy(u16())) = "u16 token";
-str prettyPrintAType(tokenTy(u32())) = "u32 token";
-str prettyPrintAType(tokenTy(u64())) = "u64 token";
-str prettyPrintAType(topTy()) = "thing";
+str prettyPrintAType(intType()) = "int";
+str prettyPrintAType(strType()) = "str";
+str prettyPrintAType(boolType()) = "bool";
+str prettyPrintAType(listType(_)) = "list";
+str prettyPrintAType(refType(name)) = "token " + name;
+str prettyPrintAType(anonType(_)) = "anonymous token";
+str prettyPrintAType(u8()) = "u8 token";
+str prettyPrintAType(u16()) = "u16 token";
+str prettyPrintAType(u32()) = "u32 token";
+str prettyPrintAType(u64()) = "u64 token";
 
 
-AType transType((Type) `<Id id>`) = tokenTy(refTy("<id>"));
-AType transType((Type) `u8`) = tokenTy(u8());
-AType transType((Type) `u16`) = tokenTy(u16());
-AType transType((Type) `u32`) = tokenTy(u32());
-AType transType((Type) `u64`) = tokenTy(u64());
-AType transType((Type) `<AnonStruct as>`) = tokenTy(anonTy([]));
-AType transType((Type) `<Type t> [ ]`) = listTy(transType(t));
-AType transType((Type) `int`) = basicTy(integer());
-AType transType((Type) `str`) = basicTy(string());
-AType transType((Type) `bool`) = basicTy(boolean());
+AType transType((Type) `<Id id>`) = refType("<id>");
+AType transType((Type) `u8`) = u8();
+AType transType((Type) `u16`) = u16();
+AType transType((Type) `u32`) = u32();
+AType transType((Type) `u64`) = u64();
+AType transType((Type) `<AnonStruct as>`) = anonType([]);
+AType transType((Type) `<Type t> [ ]`) = listType(transType(t));
+AType transType((Type) `int`) = intType();
+AType transType((Type) `str`) = strType();
+AType transType((Type) `bool`) = boolType();
 
-bool isTokenType(tokenTy(_)) = true;
-bool isTokenType(listTy(t)) = isTokenType(t); 
+bool isTokenType(u8()) = true;
+bool isTokenType(u16()) = true;
+bool isTokenType(u32()) = true;
+bool isTokenType(u64()) = true;
+bool isTokenType(refType(_)) = true;
+bool isTokenType(anonType(_)) = true;
+bool isTokenType(listType(t)) = isTokenType(t); 
 default bool isTokenType(AType t) = false;
 
-bool isAssignableToInteger(basicTy(integer())) = true;
-bool isAssignableToInteger(tokenTy(u8())) = true;
-bool isAssignableToInteger(tokenTy(u16())) = true;
-bool isAssignableToInteger(tokenTy(u32())) = true;
-bool isAssignableToInteger(tokenTy(u64())) = true;
-bool isAssignableToInteger(listTy(t)) = false 
-	when t !:= basicTy(integer());
+bool isAssignableToInteger(intType()) = true;
+bool isAssignableToInteger(u8()) = true;
+bool isAssignableToInteger(u16()) = true;
+bool isAssignableToInteger(u32()) = true;
+bool isAssignableToInteger(u64()) = true;
+bool isAssignableToInteger(listType(t)) = false 
+	when t !:= intType();
 default bool isAssignableToInteger(AType _) = false;
+
+//AType infixComparator(intType(), intType()) = intType();
+
 
 // ----  Collect definitions, uses and requirements -----------------------
 
@@ -119,12 +117,12 @@ Tree fixLocation(Tree tr, loc newLoc) =
 
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
-     c.define("<id>", structId(), current, defType(tokenTy(refTy("<id>"))));
+     c.define("<id>", structId(), current, defType(refType("<id>")));
      //collect(id, formals, c);
      c.enterScope(current); {
      	actualFormals = [af | f <- formals, af <- f.formals];
      	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
-     		return consTy(atypeList([s.getType(a) | a <- actualFormals]));
+     		return consType(atypeList([s.getType(a) | a <- actualFormals]));
      	}));
      	collect(actualFormals, c);
      	
@@ -166,7 +164,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 	if (aargs <- args){
 		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
-			s.requireTrue(tokenTy(refTy(_)):= s.getType(ty)  || listTy(tokenTy(refTy(_))) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
+			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
 			ty_ = top-down-break visit (ty){
 				case (Type)`<Type t> []` => t
 				case Type t => t
@@ -180,8 +178,8 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 	if (sz <- size){
 		c.require("size argument", current, [ty] + [sz.expr], void (Solver s) {
-			s.requireTrue(s.getType(ty) is listTy, error(current, "Setting size on a non-list element"));
-			s.requireEqual(s.getType(sz.expr), basicTy(integer()), error(current, "Size must be an integer"));
+			s.requireTrue(s.getType(ty) is listType, error(current, "Setting size on a non-list element"));
+			s.requireEqual(s.getType(sz.expr), intType(), error(current, "Size must be an integer"));
 		});
 	}
 	if (sc <- cond){
@@ -195,7 +193,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 			case (SideCondition) `? ( <Expr e> )`:{
 				c.define("this", variableId(), current, defType(ty));
 				c.require("side condition", sc, [e], void (Solver s) {
-					s.requireEqual(s.getType(e), basicTy(boolean()), error(sc, "Side condition must be boolean"));
+					s.requireEqual(s.getType(e), boolType(), error(sc, "Side condition must be boolean"));
 				});
 			}
 		}
@@ -216,19 +214,19 @@ void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 
 
 void collect(current:(Type)`u8`, Collector c) {
-	c.fact(current, tokenTy(u8()));
+	c.fact(current, u8());
 }
 
 void collect(current:(Type)`str`, Collector c) {
-	c.fact(current, basicTy(string()));
+	c.fact(current, strType());
 }
 
 void collect(current:(Type)`bool`, Collector c) {
-	c.fact(current, basicTy(boolean()));
+	c.fact(current, boolType());
 }  
 
 void collect(current:(Type)`int`, Collector c) {
-	c.fact(current, basicTy(integer()));
+	c.fact(current, intType());
 }  
 
 void collect(current:(Type)`<Id i>`, Collector c) {
@@ -237,7 +235,7 @@ void collect(current:(Type)`<Id i>`, Collector c) {
 
 void collect(current:(Type)`<Type t> [ ]`, Collector c) {
 	collect(t, c);
-	c.calculate("list type", current, [t], AType(Solver s) { return listTy(s.getType(t)); });
+	c.calculate("list type", current, [t], AType(Solver s) { return listType(s.getType(t)); });
 }  
 
 
@@ -250,15 +248,15 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Size? size> <SideCondit
 }
 
 void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
-    c.fact(current, basicTy(string()));
+    c.fact(current, strType());
 }
 
 void collect(current: (Expr) `<HexIntegerLiteral nat>`, Collector c){
-    c.fact(current, basicTy(integer()));
+    c.fact(current, intType());
 }
 
 void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
-    c.fact(current, basicTy(integer()));
+    c.fact(current, intType());
 }
 
 void collect(current: (Expr) `<Id id>`, Collector c){
@@ -270,7 +268,7 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	c.require("offset type", current, [e], void (Solver s) {
 		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offsets"));
 	}); 
-	c.fact(current, basicTy(integer()));
+	c.fact(current, intType());
 }
 
 void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
@@ -288,14 +286,14 @@ void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector 
     collect(e1, e2, c);
     c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
 		customRequirement(u, s.getType(e1), s.getType(e2),s);
-		return basicTy(boolean());
+		return boolType();
 	});
 }
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);
     c.calculate("binary expression", current, [e1, e2], AType (Solver s) {
-			return basicTy(integer());
+			return intType();
 		});
 }
 
@@ -323,7 +321,7 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
     return collectAndSolve(pt, config=getDanConfig(), debug=debug);
 }
 
-tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(tokenTy(refTy(str name))) = <true, name, {structId()}>;
+tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
 private TypePalConfig getDanConfig() = tconfig(
