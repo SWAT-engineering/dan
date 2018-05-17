@@ -28,3 +28,20 @@ test D4 [[
     	u8[] bootCode[0x1fd - foo.offset]
 	}
 ]] expect { "Only token types have offsets" }
+
+test D4 [[
+    struct Person{
+    	struct{
+    		int number = 5
+    	} address
+	}
+]]
+
+test D4 [[
+    struct Person{
+    	struct{
+    		int number = 5
+    	} address
+    	int exposed = address.number
+	}
+]]

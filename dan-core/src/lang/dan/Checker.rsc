@@ -2,9 +2,12 @@ module lang::dan::Checker
 
 import lang::dan::Syntax;
 import util::Math;
+import ListRelation;
+import Set;
 
 extend analysis::typepal::TypePal;
 extend analysis::typepal::TypePalConfig;
+
 
 data AType
 	= intType()
@@ -13,7 +16,7 @@ data AType
 	| listType(AType ty)
 	| consType(AType formals)
 	| refType(str name)
-	| anonType(AType fields)
+	| anonType(lrel[str, AType] fields)
 	| u8()
 	| u16()
 	| u32()
@@ -259,6 +262,42 @@ void collect(current:(Type)`<Id i>`, Collector c) {
 	c.use(i, {structId()}); 
 } 
 
+void collect(current:(Type)`struct { <DeclInStruct* decls>}`, Collector c) {
+	c.enterScope(current);
+		collect(decls, c);
+	c.leaveScope(current);
+	ts =for (d <-decls){
+			switch(d){
+				case (DeclInStruct) `<Type t> <Id id> = <Expr e>`: append(t);
+				case (DeclInStruct) `<Type t> <DId id> <Arguments? args> <Size? size> <SideCondition? sc>`: append(t);
+			};
+		};
+	c.calculate("anonymous struct type", current, ts, AType(Solver s){
+		fields = for (d <-decls){
+			switch(d){
+				case (DeclInStruct) `<Type t> <Id id> = <Expr e>`: append(<"<id>", s.getType(t)>);
+				case (DeclInStruct) `<Type t> <DId id> <Arguments? args> <Size? size> <SideCondition? sc>`:  append(<"<id>", s.getType(t)>);
+			};
+		};
+		return anonType(fields);
+	});
+} 
+
+void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
+     c.define("<id>", structId(), current, defType(refType("<id>")));
+     //collect(id, formals, c);
+     c.enterScope(current); {
+     	actualFormals = [af | f <- formals, af <- f.formals];
+     	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
+     		return consType(atypeList([s.getType(a) | a <- actualFormals]));
+     	}));
+     	collect(actualFormals, c);
+     	
+     	collect(decls, c);
+    }
+    c.leaveScope(current);
+}
+
 void collect(current:(Type)`<Type t> [ ]`, Collector c) {
 	collect(t, c);
 	c.calculate("list type", current, [t], AType(Solver s) { return listType(s.getType(t)); });
@@ -328,6 +367,10 @@ void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collectInfixOperation(current, "-", infixArithmetic, e1, e2, c); 
 }
 
+void collect(current: (Expr) `<Expr e1> * <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "*", infixArithmetic, e1, e2, c); 
+}
 
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
 	c.calculate("<op>",current, [lhs, rhs], AType(Solver s) {
@@ -367,9 +410,18 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
+AType getTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){
+    if(anonType(fields) :=  containerType){
+    	return Set::getOneFrom((ListRelation::index(fields))["<selector>"]);
+    }else{
+    	s.report(error(selector, "Undefined field %q on %t", selector, containerType));
+    }
+}
+
 private TypePalConfig getDanConfig() = tconfig(
     isSubType = isConvertible,
     getTypeNameAndRole = danGetTypeNameAndRole,
+    getTypeInNamelessType = getTypeInAnonymousStruct,
     mayOverload = bool(set[loc] defs, map[loc, Define] defines){
     	// TODO do it just for the constructors 
     	return true;
