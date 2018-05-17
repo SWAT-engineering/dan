@@ -336,6 +336,44 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	c.fact(current, intType());
 }
 
+void collect(current: (Expr) `<Expr e>[ : <Expr end >]`, Collector c){
+	collect(e, end, c);
+	c.calculate("range", current, [e, end], AType (Solver s){
+		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+		s.requireEqual(end, intType(), error(end, "Indexes must be integers"));
+		return s.getType(e);
+	});
+}
+
+void collect(current: (Expr) `<Expr e>[ <Expr begin> : <Expr end >]`, Collector c){
+	collect(e, begin, end, c);
+	c.calculate("range", current, [e, begin, end], AType (Solver s){
+		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+		s.requireEqual(begin, intType(), error(begin, "Indexes must be integers"));
+		s.requireEqual(end, intType(), error(end, "Indexes must be integers"));
+		return s.getType(e);
+	});
+}
+
+void collect(current: (Expr) `<Expr e>[ <Expr begin> : ]`, Collector c){
+	collect(e, begin, c);
+	c.calculate("range", current, [e, begin, end], AType (Solver s){
+		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+		s.requireEqual(begin, intType(), error(begin, "Indexes must be integers"));
+		return listType(s.getType(e));
+	});
+}
+	
+void collect(current: (Expr) `<Expr e>[ <Expr idx>]`, Collector c){
+	collect(e, idx, c);
+	c.calculate("range", current, [e, idx], AType (Solver s){
+		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+		s.requireEqual(idx, intType(), error(idx, "Indexes must be integers"));
+		listType(ty) = s.getType(e);
+		return ty;
+	});	
+}
+
 void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 	collect(e, c);
 	//currentScope = c.getScope();

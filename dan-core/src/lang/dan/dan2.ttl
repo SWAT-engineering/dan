@@ -29,7 +29,7 @@ test D4 [[
 	}
 ]] expect { "Only token types have offsets" }
 
-test D4 [[
+test D5 [[
     struct Person{
     	struct{
     		int number = 5
@@ -37,11 +37,18 @@ test D4 [[
 	}
 ]]
 
-test D4 [[
+test D6 [[
     struct Person{
     	struct{
     		int number = 5
     	} address
     	int exposed = address.number
+	}
+]]
+
+test D7 [[
+    struct Person{
+    	u8[] grades
+    	int firstGrade = grades[0]
 	}
 ]]
