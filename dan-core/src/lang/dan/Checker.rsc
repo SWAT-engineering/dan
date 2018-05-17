@@ -150,12 +150,8 @@ void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? a
      c.define("<id>", structId(), current, defType(refType("<id>")));
      //collect(id, formals, c);
      c.enterScope(current); {
-     	actualFormals = [af | f <- formals, af <- f.formals];
-     	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
-     		return consType(atypeList([s.getType(a) | a <- actualFormals]));
-     	}));
-     	collect(actualFormals, c);
-     	
+     	for (fs <- formals)
+     		collectFormals(id, fs, c);
      	collect(decls, c);
     }
     c.leaveScope(current);
@@ -229,6 +225,57 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 }
 
+void collectFormals(Id id, Formals current, Collector c){
+	actualFormals = [af | af <- current.formals];
+	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
+     		return consType(atypeList([s.getType(a) | a <- actualFormals]));
+    }));
+    collect(actualFormals, c);
+}
+
+void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? annos> { <DeclInChoice* decls> }`,  Collector c) {
+     c.define("<id>", structId(), current, defType(refType("<id>")));
+     c.enterScope(current); {
+     	for (fs <- formals)
+     		collectFormals(id, fs, c);
+     	collect(decls, c);
+    }
+    c.leaveScope(current);
+}
+
+void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`,  Collector c) {
+	c.require("declared type", ty, [ty], void(Solver s){
+		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type"));
+	});
+	collect(ty, c);
+	currentScope = c.getScope();
+	for (aargs <- args, a <- aargs.args){
+		collect(a, c);
+	}
+	for (sz <-size){
+		collect(sz.expr, c);
+	}
+	if (aargs <- args){
+		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
+			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
+			ty_ = top-down-break visit (ty){
+				case (Type)`<Type t> []` => t
+				case Type t => t
+			};
+			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
+			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
+			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
+			s.requireSubtype(ct.formals, argTypes, error(aargs, "Wrong type of arguments"));
+		});
+	}
+	if (sz <- size){
+		c.require("size argument", current, [ty] + [sz.expr], void (Solver s) {
+			s.requireTrue(s.getType(ty) is listType, error(current, "Setting size on a non-list element"));
+			s.requireEqual(s.getType(sz.expr), intType(), error(current, "Size must be an integer"));
+		});
+	}
+}
+
 void collect(current:(SideCondition) `? ( <Expr e>)`, Collector c){
 	collect(e, c);
 }
@@ -243,6 +290,18 @@ void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 
 
 void collect(current:(Type)`u8`, Collector c) {
+	c.fact(current, u8());
+}
+
+void collect(current:(Type)`u16`, Collector c) {
+	c.fact(current, u8());
+}
+
+void collect(current:(Type)`u32`, Collector c) {
+	c.fact(current, u8());
+}
+
+void collect(current:(Type)`u64`, Collector c) {
 	c.fact(current, u8());
 }
 
@@ -420,25 +479,7 @@ void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, T
 		}
 		
 	});
-}
-
-void customRequirement(uo:(UnaryOperator) `==`, AType t1, AType t2, Solver s) = {
-	s.requireTrue(isAssignableToInteger(t2) , error(uo, "Both expressions must be convertible to integers"));
-}
-when isAssignableToInteger(t1);
-
-void customRequirement(uo:(UnaryOperator) `==`, AType t1, AType t2, Solver s) = {
-	s.requireEqual(t1,t2, error(uo, "Operands must have the same type"));
-}
-when !isAssignableToInteger(t1);	 
-
-void customRequirement(UnaryOperator uo, AType t1, AType t2, Solver s) = {
-		s.requireTrue(isAssignableToInteger(t1), error(uo, "Comparator operands must act upon integers"));
-		s.requireTrue(isAssignableToInteger(t2), error(uo, "Comparator operands must act upon integers"));
-	}
-	when (UnaryOperator) `\>` := uo || (UnaryOperator) `\>=` := uo || (UnaryOperator) `\<` := uo || (UnaryOperator) `\<=` := uo;
-
-	
+}	
 
 // ----  Examples & Tests --------------------------------
 TModel danTModelFromTree(Tree pt, bool debug = false){
