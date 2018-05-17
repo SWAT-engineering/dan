@@ -178,34 +178,14 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 		c.define("<id>", fieldId(), id, defType(ty));
 	}
 	collect(ty, c);
-	currentScope = c.getScope();
-	for (aargs <- args, a <- aargs.args){
-		collect(a, c);
+	for (aargs <- args){
+		collectArgs(ty, id, aargs, c);
 	}
 	for (sz <-size){
-		collect(sz.expr, c);
+		collectSize(ty, sz, c);
 	}
 	for (sc <- cond){
 		collect(sc, c);
-	}
-	if (aargs <- args){
-		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
-			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
-			ty_ = top-down-break visit (ty){
-				case (Type)`<Type t> []` => t
-				case Type t => t
-			};
-			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
-			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
-			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
-			s.requireSubtype(ct.formals, argTypes, error(aargs, "Wrong type of arguments"));
-		});
-	}
-	if (sz <- size){
-		c.require("size argument", current, [ty] + [sz.expr], void (Solver s) {
-			s.requireTrue(s.getType(ty) is listType, error(current, "Setting size on a non-list element"));
-			s.requireEqual(s.getType(sz.expr), intType(), error(current, "Size must be an integer"));
-		});
 	}
 	if (sc <- cond){
 		switch(sc){
@@ -225,6 +205,32 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 }
 
+void collectSize(Type ty, Size sz, Collector c){
+	collect(sz.expr, c);
+	c.require("size argument", sz, [ty] + [sz.expr], void (Solver s) {
+		s.requireTrue(s.getType(ty) is listType, error(sz, "Setting size on a non-list element"));
+		s.requireEqual(s.getType(sz.expr), intType(), error(sz, "Size must be an integer"));
+	});
+}
+
+void collectArgs(Type ty, Tree id, Arguments current, Collector c){
+		currentScope = c.getScope();
+		for (a <- current.args)
+			collect(a, c);
+		c.require("constructor arguments", current, [ty] + current.args, void (Solver s) {
+			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
+			ty_ = top-down-break visit (ty){
+				case (Type)`<Type t> []` => t
+				case Type t => t
+			};
+			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
+			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
+			argTypes = atypeList([ s.getType(a) | a <- current.args ]);
+			s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+		});
+	
+}
+
 void collectFormals(Id id, Formals current, Collector c){
 	actualFormals = [af | af <- current.formals];
 	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
@@ -234,6 +240,7 @@ void collectFormals(Id id, Formals current, Collector c){
 }
 
 void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? annos> { <DeclInChoice* decls> }`,  Collector c) {
+	 // TODO  explore `Solver.getAllDefinedInType` for implementing the check of abstract fields
      c.define("<id>", structId(), current, defType(refType("<id>")));
      c.enterScope(current); {
      	for (fs <- formals)
@@ -249,30 +256,11 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 	});
 	collect(ty, c);
 	currentScope = c.getScope();
-	for (aargs <- args, a <- aargs.args){
-		collect(a, c);
+	for (aargs <- args){
+		collectArgs(ty, id, aargs, c);
 	}
 	for (sz <-size){
-		collect(sz.expr, c);
-	}
-	if (aargs <- args){
-		c.require("constructor arguments", aargs, [ty] + aargs.args, void (Solver s) {
-			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(aargs, "Constructor arguments only apply to user-defined types"));
-			ty_ = top-down-break visit (ty){
-				case (Type)`<Type t> []` => t
-				case Type t => t
-			};
-			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
-			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
-			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
-			s.requireSubtype(ct.formals, argTypes, error(aargs, "Wrong type of arguments"));
-		});
-	}
-	if (sz <- size){
-		c.require("size argument", current, [ty] + [sz.expr], void (Solver s) {
-			s.requireTrue(s.getType(ty) is listType, error(current, "Setting size on a non-list element"));
-			s.requireEqual(s.getType(sz.expr), intType(), error(current, "Size must be an integer"));
-		});
+		collectSize(ty, sz, c);
 	}
 }
 
