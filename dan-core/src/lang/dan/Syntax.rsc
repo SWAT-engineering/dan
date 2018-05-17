@@ -60,15 +60,12 @@ syntax Expr
 	| "(" Expr ")"
 	| Expr "." Id
 	> "-" Expr
-	> ComparatorExpr
+	> Expr UnaryOperator Expr
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
 	> Expr "[" Range "]"
 	;
-	
-syntax ComparatorExpr
-	= Expr UnaryOperator Expr; 
 		
 syntax UnaryOperator 
 	= "==" 

@@ -91,7 +91,34 @@ bool isAssignableToInteger(listType(t)) = false
 	when t !:= intType();
 default bool isAssignableToInteger(AType _) = false;
 
-//AType infixComparator(intType(), intType()) = intType();
+AType infixComparator(intType(), intType()) = boolType();
+AType infixComparator(u8(), intType()) = boolType();
+AType infixComparator(u8(), u8()) = boolType();
+AType infixComparator(intType(), u8()) = boolType();
+AType infixComparator(u16(), intType()) = boolType();
+AType infixComparator(u16(), 16()) = boolType();
+AType infixComparator(intType(), u16()) = boolType();
+default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a comparator"; }
+
+AType infixEquality(intType(), intType()) = boolType();
+AType infixEquality(u8(), intType()) = boolType();
+AType infixEquality(u8(), u8()) = boolType();
+AType infixEquality(intType(), u8()) = boolType();
+AType infixEquality(u16(), intType()) = boolType();
+AType infixEquality(u16(), 16()) = boolType();
+AType infixEquality(intType(), u16()) = boolType();
+AType infixEquality(AType t1, AType t2) = boolType()
+	when t1 == t2;
+default AType infixEquality(AType t1, AType t2){ throw "Wrong operands for equality"; }
+
+AType infixArithmetic(intType(), intType()) = intType();
+AType infixArithmetic(u8(), intType()) = intType();
+AType infixArithmetic(u8(), u8()) = intType();
+AType infixArithmetic(intType(), u8()) = intType();
+AType infixArithmetic(u16(), intType()) = intType();
+AType infixArithmetic(u16(), 16()) = intType();
+AType infixArithmetic(intType(), u16()) = intType();
+default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
 
 
 // ----  Collect definitions, uses and requirements -----------------------
@@ -170,7 +197,6 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 				case Type t => t
 			};
 			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
-			println(conId);
 			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
 			argTypes = atypeList([ s.getType(a) | a <- aargs.args ]);
 			s.requireSubtype(ct.formals, argTypes, error(aargs, "Wrong type of arguments"));
@@ -281,22 +307,39 @@ void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 
 }
 
+void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
+}
 
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    c.calculate("binary expression",current, [e1,e2], AType(Solver s) {
-		customRequirement(u, s.getType(e1), s.getType(e2),s);
-		return boolType();
-	});
+    collectInfixOperation(current, "<u>", infixComparator, e1, e2, c); 
 }
+
+void collect(current: (Expr) `<Expr e1> + <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "+", infixArithmetic, e1, e2, c); 
+}
+
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    c.calculate("binary expression", current, [e1, e2], AType (Solver s) {
-			return intType();
-		});
+    collectInfixOperation(current, "-", infixArithmetic, e1, e2, c); 
 }
 
+
+void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
+	c.calculate("<op>",current, [lhs, rhs], AType(Solver s) {
+		try
+			return infixFun(s.getType(lhs), s.getType(rhs));
+		catch str msg:{
+			println(msg);
+			s.report(error(current, msg));
+		}
+		
+	});
+}
 
 void customRequirement(uo:(UnaryOperator) `==`, AType t1, AType t2, Solver s) = {
 	s.requireTrue(isAssignableToInteger(t2) , error(uo, "Both expressions must be convertible to integers"));
