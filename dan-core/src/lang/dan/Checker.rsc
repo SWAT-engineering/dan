@@ -230,9 +230,6 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      		 for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
      			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
      			for (f <- abstractFields){
-     				println(s.getType(ty));
-     				println(f.id);
-     				println(currentScope);
      				try{
      					s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
      				}catch _:{
@@ -449,7 +446,6 @@ void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, T
 		try
 			return infixFun(s.getType(lhs), s.getType(rhs));
 		catch str msg:{
-			println(msg);
 			s.report(error(current, msg));
 		}
 		
