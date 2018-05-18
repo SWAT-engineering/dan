@@ -329,15 +329,6 @@ void collect(current:(Type)`<Type t> [ ]`, Collector c) {
 	c.calculate("list type", current, [t], AType(Solver s) { return listType(s.getType(t)); });
 }  
 
-
-void collect(current:(DeclInStruct) `<Type ty> <DId id> <Size? size> <SideCondition? cond>`,  Collector c) {
-	c.use(ty, { consId(), structId() });
-	if ("<id>" != "_"){
-		c.define("<id>", fieldId(), id, defType(transType(ty)));
-	}
-
-}
-
 void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
     c.fact(current, strType());
 }
