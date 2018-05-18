@@ -214,13 +214,44 @@ void collectFormals(Id id, Formals current, Collector c){
 
 void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? annos> { <DeclInChoice* decls> }`,  Collector c) {
 	 // TODO  explore `Solver.getAllDefinedInType` for implementing the check of abstract fields
-     c.define("<id>", structId(), current, defType(refType("<id>")));
+	 c.define("<id>", structId(), current, defType(refType("<id>")));
      c.enterScope(current); {
      	for (fs <- formals)
      		collectFormals(id, fs, c);
      	collect(decls, c);
+     	currentScope = c.getScope();
+     	c.require("abstract fields", current, [id], void(Solver s){
+     		//ts = for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
+     		//	append(s.getType(ty));
+     		//};
+     		rel[str id,AType ty] abstractFields = s.getAllDefinedInType(refType("<id>"), currentScope, {fieldId()});
+     		for (actualFormals <- formals, formal <- actualFormals.formals)
+     			abstractFields = {f | f <-abstractFields, f.id != "<formal.id>"};
+     		 for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
+     			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
+     			for (f <- abstractFields){
+     				println(s.getType(ty));
+     				println(f.id);
+     				println(currentScope);
+     				try{
+     					s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
+     				}catch _:{
+     					s.report(error(ty, "Missing implementation of abstract field")); 
+     				};
+     				
+     			};
+     			
+     		};
+     			
+     	});
     }
     c.leaveScope(current);
+    
+}
+
+void collect(current:(DeclInChoice) `abstract <Type ty> <Id id>`,  Collector c) {
+	c.define("<id>", fieldId(), id, defType(ty));
+	collect(ty, c);
 }
 
 void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`,  Collector c) {
@@ -228,7 +259,6 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type"));
 	});
 	collect(ty, c);
-	currentScope = c.getScope();
 	for (aargs <- args){
 		collectArgs(ty, id, aargs, c);
 	}
@@ -247,15 +277,15 @@ void collect(current:(Type)`u8`, Collector c) {
 }
 
 void collect(current:(Type)`u16`, Collector c) {
-	c.fact(current, u8());
+	c.fact(current, u16());
 }
 
 void collect(current:(Type)`u32`, Collector c) {
-	c.fact(current, u8());
+	c.fact(current, u32());
 }
 
 void collect(current:(Type)`u64`, Collector c) {
-	c.fact(current, u8());
+	c.fact(current, u64());
 }
 
 void collect(current:(Type)`str`, Collector c) {
@@ -278,20 +308,17 @@ void collect(current:(Type)`struct { <DeclInStruct* decls>}`, Collector c) {
 	c.enterScope(current);
 		collect(decls, c);
 	c.leaveScope(current);
-	ts =for (d <-decls){
+	fields =for (d <-decls){
 			switch(d){
-				case (DeclInStruct) `<Type t> <Id id> = <Expr e>`: append(t);
-				case (DeclInStruct) `<Type t> <DId id> <Arguments? args> <Size? size> <SideCondition? sc>`: append(t);
+				case (DeclInStruct) `<Type t> <Id id> = <Expr e>`: append(<"<id>", t>);
+				case (DeclInStruct) `<Type t> <DId id> <Arguments? args> <Size? size> <SideCondition? sc>`: append(<"<id>", t>);
 			};
 		};
-	c.calculate("anonymous struct type", current, ts, AType(Solver s){
-		fields = for (d <-decls){
-			switch(d){
-				case (DeclInStruct) `<Type t> <Id id> = <Expr e>`: append(<"<id>", s.getType(t)>);
-				case (DeclInStruct) `<Type t> <DId id> <Arguments? args> <Size? size> <SideCondition? sc>`:  append(<"<id>", s.getType(t)>);
-			};
-		};
-		return anonType(fields);
+	//for (<id, ty> <- fields){
+	//		c.define("<id>", fieldId(), current, defType(ty));
+	//};
+	c.calculate("anonymous struct type", current, [ty | <_, ty> <- fields], AType(Solver s){
+		return anonType([<id, s.getType(ty)> | <id, ty> <- fields]);
 	});
 } 
 

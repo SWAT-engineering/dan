@@ -57,14 +57,14 @@ test D7 [[
 test D8 [[
     struct Person{
     	u8[] grades
-    	int[] firstGrade = grades[0:2]
+    	int[] firstGrades = grades[0:2]
 	}
 ]]
 
 test D9 [[
     struct Person{
     	u8[] grades
-    	int[] firstGrade = grades[:2]
+    	int[] lastGrades = grades[:2]
 	}
 ]]
 
@@ -72,12 +72,12 @@ test D9 [[
 test D10 [[
     struct Person{
     	u8[] grades
-    	int[] firstGrade = grades[0:]
+    	int[] gradesFrom = grades[0:]
 	}
 ]]
 
 test D11 [[
-choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, int clusterStart){
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   struct{
   	u16 nextCluster ? (!= 0xFFF8)
   }
@@ -86,3 +86,54 @@ choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, int cluster
   }
 }
 ]]
+
+test D12 [[
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
+  abstract u16 nextCluster
+  struct{
+  	u16 nextCluster ? (!= 0xFFF8)
+  }
+  struct{
+    u16 nextCluster ? (== 0xFFF8)
+  }
+}
+]]
+
+test D13 [[
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
+  abstract u16 nextCluster
+  struct{
+  	u16 otherCluster ? (!= 0xFFF8)
+  }
+  struct{
+    u16 nextCluster ? (== 0xFFF8)
+  }
+}
+]] expect { "Missing implementation of abstract field" }
+
+test D14 [[
+struct AuxStruct{
+	u16 nextCluster ? (== 0xFFF8)
+}
+
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
+  abstract u16 nextCluster
+  struct{
+  	u16 nextCluster ? (!= 0xFFF8)
+  }
+  AuxStruct
+}
+]]
+
+test D14 [[
+struct AuxStruct{
+}
+
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
+  abstract u16 nextCluster
+  struct{
+  	u16 nextCluster ? (!= 0xFFF8)
+  }
+  AuxStruct
+}
+]] expect { "Missing implementation of abstract field" }
