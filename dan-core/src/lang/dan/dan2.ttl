@@ -62,6 +62,21 @@ test D8 [[
 ]]
 
 test D9 [[
+    struct Person{
+    	u8[] grades
+    	int[] firstGrade = grades[:2]
+	}
+]]
+
+
+test D10 [[
+    struct Person{
+    	u8[] grades
+    	int[] firstGrade = grades[0:]
+	}
+]]
+
+test D11 [[
 choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, int clusterStart){
   struct{
   	u16 nextCluster ? (!= 0xFFF8)

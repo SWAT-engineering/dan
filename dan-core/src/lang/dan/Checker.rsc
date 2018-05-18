@@ -54,13 +54,13 @@ default bool isConvertible(AType _, AType _) = false;
 str prettyPrintAType(intType()) = "int";
 str prettyPrintAType(strType()) = "str";
 str prettyPrintAType(boolType()) = "bool";
-str prettyPrintAType(listType(_)) = "list";
-str prettyPrintAType(refType(name)) = "token " + name;
-str prettyPrintAType(anonType(_)) = "anonymous token";
-str prettyPrintAType(u8()) = "u8 token";
-str prettyPrintAType(u16()) = "u16 token";
-str prettyPrintAType(u32()) = "u32 token";
-str prettyPrintAType(u64()) = "u64 token";
+str prettyPrintAType(listType(t)) = "<prettyPrintAType(t)>[]";
+str prettyPrintAType(refType(name)) = name;
+str prettyPrintAType(anonType(_)) = "anonymous";
+str prettyPrintAType(u8()) = "u8";
+str prettyPrintAType(u16()) = "u16";
+str prettyPrintAType(u32()) = "u32";
+str prettyPrintAType(u64()) = "u64";
 
 bool isTokenType(u8()) = true;
 bool isTokenType(u16()) = true;
@@ -339,38 +339,42 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	c.fact(current, intType());
 }
 
-void collect(current: (Expr) `<Expr e>[ : <Expr end >]`, Collector c){
-	collect(e, end, c);
-	c.calculate("range", current, [e, end], AType (Solver s){
-		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
-		s.requireEqual(end, intType(), error(end, "Indexes must be integers"));
+void collect(current: (Expr) `<Expr e>[<Range r>]`, Collector c){
+	collect(e, c);
+	c.require("list expression", current, [e], void(Solver s){
+			s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+		});
+	collectRange(current, e, r, c);
+}
+
+void collectRange(Expr access, Expr e, current:(Range) `: <Expr end>`, Collector c){
+	collect(end, c);
+	c.calculate("list access", access, [e, end], AType (Solver s){
+		s.requireEqual(end, intType(), error(end, "Index must be integer"));
 		return s.getType(e);
 	});
 }
 
-void collect(current: (Expr) `<Expr e>[ <Expr begin> : <Expr end >]`, Collector c){
-	collect(e, begin, end, c);
-	c.calculate("range", current, [e, begin, end], AType (Solver s){
-		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
-		s.requireEqual(begin, intType(), error(begin, "Indexes must be integers"));
-		s.requireEqual(end, intType(), error(end, "Indexes must be integers"));
+void collectRange(Expr access, Expr e, current:(Range) `<Expr begin> : <Expr end>`, Collector c){
+	collect(begin, end, c);
+	c.calculate("list access", access, [e, begin, end], AType (Solver s){
+		s.requireEqual(begin, intType(), error(begin, "Index must be integer"));
+		s.requireEqual(end, intType(), error(end, "Index must be integer"));
 		return s.getType(e);
 	});
 }
 
-void collect(current: (Expr) `<Expr e>[ <Expr begin> : ]`, Collector c){
-	collect(e, begin, c);
-	c.calculate("range", current, [e, begin, end], AType (Solver s){
-		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
-		s.requireEqual(begin, intType(), error(begin, "Indexes must be integers"));
-		return listType(s.getType(e));
+void collectRange(Expr access, Expr e, current: (Range) `<Expr begin> :`, Collector c){
+	collect(begin, c);
+	c.calculate("list access", access, [e, begin], AType (Solver s){
+		s.requireEqual(begin, intType(), error(begin, "Index must be integer"));
+		return s.getType(e);
 	});
 }
 	
-void collect(current: (Expr) `<Expr e>[ <Expr idx>]`, Collector c){
-	collect(e, idx, c);
-	c.calculate("range", current, [e, idx], AType (Solver s){
-		s.requireTrue(listType(_) := s.getType(e), error(e, "Expression must be of list type"));
+void collectRange(Expr access, Expr e, current: (Range) `<Expr idx>`, Collector c){
+	collect(idx, c);
+	c.calculate("list access", access, [e, idx], AType (Solver s){
 		s.requireEqual(idx, intType(), error(idx, "Indexes must be integers"));
 		listType(ty) = s.getType(e);
 		return ty;
