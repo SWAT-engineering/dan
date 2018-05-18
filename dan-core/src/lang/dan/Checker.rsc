@@ -85,15 +85,6 @@ bool isTokenType(anonType(_)) = true;
 bool isTokenType(listType(t)) = isTokenType(t); 
 default bool isTokenType(AType t) = false;
 
-bool isAssignableToInteger(intType()) = true;
-bool isAssignableToInteger(u8()) = true;
-bool isAssignableToInteger(u16()) = true;
-bool isAssignableToInteger(u32()) = true;
-bool isAssignableToInteger(u64()) = true;
-bool isAssignableToInteger(listType(t)) = false 
-	when t !:= intType();
-default bool isAssignableToInteger(AType _) = false;
-
 AType infixComparator(intType(), intType()) = boolType();
 AType infixComparator(u8(), intType()) = boolType();
 AType infixComparator(u8(), u8()) = boolType();
@@ -196,7 +187,7 @@ void collectSideCondition(Type ty, current:(SideCondition) `? ( <Expr e>)`, Coll
 void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
-		s.requireTrue(isAssignableToInteger(s.getType(e)), error(current, "Expression in unary side condition must have numeric type"));
+		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
 	});
 	//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 }
