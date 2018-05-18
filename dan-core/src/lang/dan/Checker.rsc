@@ -126,14 +126,10 @@ default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an 
 
 // ----  Collect definitions, uses and requirements -----------------------
 
-data Global = global(loc scope); 
-
-Global global = global(|project://dummy.dummy|);
 
 void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
     c.enterScope(current);
     currentScope = c.getScope();
-    global.scope = currentScope;
     	collect(decls, c);
     c.leaveScope(current);
 }
@@ -185,24 +181,24 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 		collectSize(ty, sz, c);
 	}
 	for (sc <- cond){
-		collect(sc, c);
+		collectSideCondition(ty, sc, c);
 	}
-	if (sc <- cond){
-		switch(sc){
-			case (SideCondition) `? ( <UnaryOperator uo> <Expr e> )`:{
-				c.require("side condition", sc, [e], void (Solver s) {
-					s.requireTrue(isAssignableToInteger(s.getType(e)), error(sc, "Expression in unary side condition must have numeric type"));
-				});
-				//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
-			}
-			case (SideCondition) `? ( <Expr e> )`:{
-				c.define("this", variableId(), current, defType(ty));
-				c.require("side condition", sc, [e], void (Solver s) {
-					s.requireEqual(s.getType(e), boolType(), error(sc, "Side condition must be boolean"));
-				});
-			}
-		}
-	}
+}
+
+void collectSideCondition(Type ty, current:(SideCondition) `? ( <Expr e>)`, Collector c){
+	collect(e, c);
+	c.define("this", variableId(), current, defType(ty));
+	c.require("side condition", current, [e], void (Solver s) {
+		s.requireEqual(s.getType(e), boolType(), error(current, "Side condition must be boolean"));
+	});
+}
+
+void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+	collect(e, c);
+	c.require("side condition", current, [e], void (Solver s) {
+		s.requireTrue(isAssignableToInteger(s.getType(e)), error(current, "Expression in unary side condition must have numeric type"));
+	});
+	//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 }
 
 void collectSize(Type ty, Size sz, Collector c){
@@ -262,14 +258,6 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 	for (sz <-size){
 		collectSize(ty, sz, c);
 	}
-}
-
-void collect(current:(SideCondition) `? ( <Expr e>)`, Collector c){
-	collect(e, c);
-}
-
-void collect(current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
-	collect(e, c);
 }
 
 void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
