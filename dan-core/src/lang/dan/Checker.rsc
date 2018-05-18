@@ -219,8 +219,14 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      	for (fs <- formals)
      		collectFormals(id, fs, c);
      	collect(decls, c);
+     	ts = for (d <- decls){
+     			switch (d){
+     				case (DeclInChoice) `abstract <Type ty> <Id _>`: append(ty);
+     				case (DeclInChoice) `<Type ty> <Arguments? _> <Size? _>`: append(ty);
+     			};
+     		};
      	currentScope = c.getScope();
-     	c.require("abstract fields", current, [id], void(Solver s){
+     	c.require("abstract fields", current, [id] + ts, void(Solver s){
      		//ts = for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
      		//	append(s.getType(ty));
      		//};
@@ -231,7 +237,7 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
      			for (f <- abstractFields){
      				try{
-     					s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
+     					AType t = s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
      				}catch _:{
      					s.report(error(ty, "Missing implementation of abstract field")); 
      				};

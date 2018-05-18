@@ -137,3 +137,19 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   AuxStruct
 }
 ]] expect { "Missing implementation of abstract field" }
+
+test D15 [[
+struct AuxStruct{
+	u16 nextCluster ? (== 0xFFF8)
+	FileCluster2 other
+	u16 otherCluster = other.nextCluster
+}
+
+choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
+  abstract u16 nextCluster
+  struct{
+  	u16 nextCluster ? (!= 0xFFF8)
+  }
+  AuxStruct
+}
+]]
