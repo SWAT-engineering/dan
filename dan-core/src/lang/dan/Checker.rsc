@@ -43,15 +43,13 @@ bool isConvertible(u32(), intType()) = true;
 bool isConvertible(u32(), strType()) = true;
 bool isConvertible(u64(), intType()) = true;
 bool isConvertible(u64(), strType()) = true;
-bool isConvertible(listType(t), intType()) = danIsSubType(t, intType());
-bool isConvertible(listType(t), strType()) = danIsSubType(t, strType());
 
+// covariant lists
+bool isConvertible(listType(t1), listType(t2)) = isConvertible(t1, t2);
 
 bool isConvertible(AType t1, AType t2) = true
 	when t1 == t2;
 default bool isConvertible(AType _, AType _) = false;
-
-
 
 str prettyPrintAType(intType()) = "int";
 str prettyPrintAType(strType()) = "str";
@@ -63,18 +61,6 @@ str prettyPrintAType(u8()) = "u8 token";
 str prettyPrintAType(u16()) = "u16 token";
 str prettyPrintAType(u32()) = "u32 token";
 str prettyPrintAType(u64()) = "u64 token";
-
-
-AType transType((Type) `<Id id>`) = refType("<id>");
-AType transType((Type) `u8`) = u8();
-AType transType((Type) `u16`) = u16();
-AType transType((Type) `u32`) = u32();
-AType transType((Type) `u64`) = u64();
-AType transType((Type) `<AnonStruct as>`) = anonType([]);
-AType transType((Type) `<Type t> [ ]`) = listType(transType(t));
-AType transType((Type) `int`) = intType();
-AType transType((Type) `str`) = strType();
-AType transType((Type) `bool`) = boolType();
 
 bool isTokenType(u8()) = true;
 bool isTokenType(u16()) = true;

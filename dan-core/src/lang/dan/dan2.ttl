@@ -53,7 +53,15 @@ test D7 [[
 	}
 ]]
 
-test D8[[
+
+test D8 [[
+    struct Person{
+    	u8[] grades
+    	int[] firstGrade = grades[0:2]
+	}
+]]
+
+test D9 [[
 choice FileCluster2(u16 nextCluster, u16 myCluster, u32 clusterSize, int clusterStart){
   struct{
   	u16 nextCluster ? (!= 0xFFF8)
