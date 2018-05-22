@@ -1,0 +1,89 @@
+choice FORMAT(Type format){
+	// TODO the above apparently needs to be parameterized
+	FAT16Format(format)
+	//SinglezZipFormat
+	// TODO PngFormat
+}
+
+struct FORMAT_ZIP@(encoding = LittleIndian){
+	struct{
+		//TODO LocalDeflatedFile ldf
+		//TODO PNG png = parse
+	} _
+	//DirEntry entries
+	//EndOfDir _		
+}
+
+// TODO auxiliar
+struct Type{
+
+}
+
+struct FAT16Format(Type format)@(encoding = LittleIndian){
+	Reserved reserved
+  	BPB20 block = reserved.boot.block2_0 // types of derived things can be inferred
+  	FAT[] fatArea(block)[block.fatCount]
+  	RootDirectory[] root(format, block, fatArea.offset, root.offset)[block.maxRootDirectoryEntryCount]
+}
+
+
+choice RootDirectory (Type format, BPB20 bpe, int firstFat, int firstRoot){
+  // TODO EmptyEntry
+  // TODO VFATLongFileName
+  DirectoryEntry(format, bpe, firstFat, firstRoot)
+}   
+
+
+
+struct Reserved{
+  BootSector boot
+  u8[] restData[size]
+
+  int size = 0//boot.biosBlock.block_2_0.bytesPerLogicalSector  * (boot.biosBlock.block_2_0.reservedSectorCount - 1) // How to do coercion? or polymorphic operators?
+}
+
+struct BootSector{
+  // TODO add u24
+  u16 jumpInstruction
+  u8[] oemName[8]
+  BiosParameterBlock biosBlock
+  u8[] bootCode[0x1fd - bootCode.offset] // a self offset link. Alternatively, it could be a `offset` special variable as `this` in Java
+  u8 physicalDriveNumber
+  u16 bootSectorSignature?(== 0xaa55)
+  // TODO this was added
+  u8 clusterSize
+  BPB20 block2_0
+}
+
+struct BiosParameterBlock{
+	BPB20 block2_0
+	u8 reservedSectorCount
+	u8 maxRootDirectoryEntryCount
+}
+
+struct BPB20{
+	u8 logicalSectorsPerFat
+	u8 bytesPerLogicalSector
+	u8 fatCount
+	u8 maxRootDirectoryEntryCount
+}
+
+struct FAT(BPB20 bootSector){
+  u8[] table[bootSector.logicalSectorsPerFat * bootSector.bytesPerLogicalSector]   // might need to skip
+}
+
+struct DirectoryEntry(Type nestedFilesParser, BPB20 bpe, int firstFat, int firstRoot){
+  u8[] shortFileName[8]
+  u8[] extension[3]
+  u8 attributes
+  u8[] _[2] // ignored fields
+  u16[] _[6] // another way of ignoring fields
+  u16 fileStartCluster
+  u32 fileSize
+  //FileCluster fileData(fileStartCluster, bpe.clusterSize, firstRoot + bpe.block_2_0.maxRootDirectoryEntryCount)
+  
+    
+  // need to think about this syntax around nested parsing, and the cat & ranges syntax
+
+  //Token fileEntry = parse(nestedFilesParser, fileData.fullContent[:fileSize])  // filterEntry has the top token type
+}
