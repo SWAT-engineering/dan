@@ -61,6 +61,7 @@ str prettyPrintAType(u8()) = "u8";
 str prettyPrintAType(u16()) = "u16";
 str prettyPrintAType(u32()) = "u32";
 str prettyPrintAType(u64()) = "u64";
+str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 
 bool isTokenType(u8()) = true;
 bool isTokenType(u16()) = true;
@@ -152,7 +153,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 	}
 	collect(ty, c);
 	for (aargs <- args){
-		collectArgs(ty, id, aargs, c);
+		collectArgs(ty, aargs, c);
 	}
 	for (sz <-size){
 		collectSize(ty, sz, c);
@@ -182,21 +183,21 @@ void collectSize(Type ty, Size sz, Collector c){
 	collect(sz.expr, c);
 	c.require("size argument", sz, [ty] + [sz.expr], void (Solver s) {
 		s.requireTrue(s.getType(ty) is listType, error(sz, "Setting size on a non-list element"));
-		s.requireEqual(s.getType(sz.expr), intType(), error(sz, "Size must be an integer"));
+		s.requireSubtype(s.getType(sz.expr), intType(), error(sz, "Size must be an integer"));
 	});
 }
 
-void collectArgs(Type ty, Tree id, Arguments current, Collector c){
+void collectArgs(Type ty, Arguments current, Collector c){
 		currentScope = c.getScope();
 		for (a <- current.args)
 			collect(a, c);
-		c.require("constructor arguments", current, [ty] + current.args, void (Solver s) {
+		c.require("constructor arguments", current, [ty] + [a | a <- current.args], void (Solver s) {
 			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
 			ty_ = top-down-break visit (ty){
 				case (Type)`<Type t> []` => t
 				case Type t => t
 			};
-			conId = fixLocation(parse(#Type, "<ty_>"), id@\loc);
+			conId = fixLocation(parse(#Type, "<ty_>"), ty@\loc);
 			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
 			argTypes = atypeList([ s.getType(a) | a <- current.args ]);
 			s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
@@ -263,7 +264,9 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 	});
 	collect(ty, c);
 	for (aargs <- args){
-		collectArgs(ty, id, aargs, c);
+		// TODO check if it works to pass ty as second argument, i.e.,
+		// parent node of new artificially created node
+		collectArgs(ty, aargs, c);
 	}
 	for (sz <-size){
 		collectSize(ty, sz, c);
@@ -447,6 +450,10 @@ void collect(current: (Expr) `<Expr e1> * <Expr e2>`, Collector c){
     collectInfixOperation(current, "*", infixArithmetic, e1, e2, c); 
 }
 
+void collect(current: (Expr) `(<Expr e>)`, Collector c){
+    collect(e, c); 
+}
+
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
 	c.calculate("<op>",current, [lhs, rhs], AType(Solver s) {
 		try
@@ -470,7 +477,8 @@ AType getTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, So
     if(anonType(fields) :=  containerType){
     	return Set::getOneFrom((ListRelation::index(fields))["<selector>"]);
     }else{
-    	s.report(error(selector, "Undefined field %q on %t", selector, containerType));
+    	println(containerType);
+    	s.report(error(selector, "Undefined field <selector> on %t",containerType));
     }
 }
 

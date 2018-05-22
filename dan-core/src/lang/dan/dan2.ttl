@@ -153,3 +153,39 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   AuxStruct
 }
 ]]
+
+test D17 [[
+struct BPB20{
+	u8 logicalSectorsPerFat
+	u8 bytesPerLogicalSector
+	u8 fatCount
+	u8 maxRootDirectoryEntryCount
+}
+
+struct FAT(BPB20 bootSector){
+  u8[] table[bootSector.logicalSectorsPerFat * bootSector.bytesPerLogicalSector]   // might need to skip
+}
+]]
+
+test D18 [[
+struct DirectoryEntry{
+  u8[] _[2] // ignored fields
+  u16[] _[6] // another way of ignoring fields
+}
+]]
+
+test D19[[
+struct FORMAT_ZIP@(encoding = LittleIndian){
+	struct{
+	} _	
+}
+]]
+
+test D20[[
+struct A{
+	B b(1,2)
+}
+
+struct B(int x, int y){
+}
+]]

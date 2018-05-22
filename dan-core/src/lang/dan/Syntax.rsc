@@ -57,7 +57,7 @@ syntax Expr
 	| HexIntegerLiteral
 	| StringLiteral
 	| Id Arguments
-	| "(" Expr ")"
+	| bracket "(" Expr ")"
 	| Expr "." Id
 	> "-" Expr
 	> Expr UnaryOperator Expr
