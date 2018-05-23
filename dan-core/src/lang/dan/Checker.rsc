@@ -198,7 +198,8 @@ void collectArgs(Type ty, Arguments current, Collector c){
 				case (Type)`<Type t> []` => t
 				case Type t => t
 			};
-			conId = fixLocation(parse(#Type, "<ty_>"), ty@\loc);
+			tyLoc = ty@\loc;
+			conId = fixLocation(parse(#Type, "<ty_>"), tyLoc[offset=tyLoc.offset + tyLoc.length]);
 			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
 			argTypes = atypeList([ s.getType(a) | a <- current.args ]);
 			s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
