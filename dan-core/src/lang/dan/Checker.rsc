@@ -69,7 +69,8 @@ bool isTokenType(u32()) = true;
 bool isTokenType(u64()) = true;
 bool isTokenType(refType(_)) = true;
 bool isTokenType(anonType(_)) = true;
-bool isTokenType(listType(t)) = isTokenType(t); 
+bool isTokenType(listType(t)) = isTokenType(t);
+bool isTokenType(consType(_)) = true;  
 default bool isTokenType(AType t) = false;
 
 AType infixComparator(intType(), intType()) = boolType();
@@ -146,7 +147,7 @@ void collect(current:(DeclInStruct) `<Type ty> <Id id> = <Expr expr>`,  Collecto
 
 void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`,  Collector c) {
 	c.require("declared type", ty, [ty], void(Solver s){
-		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type"));
+		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type, but it was %t", ty));
 	});
 	if ("<id>" != "_"){
 		c.define("<id>", fieldId(), id, defType(ty));
@@ -192,7 +193,7 @@ void collectArgs(Type ty, Arguments current, Collector c){
 		for (a <- current.args)
 			collect(a, c);
 		c.require("constructor arguments", current, [ty] + [a | a <- current.args], void (Solver s) {
-			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types"));
+			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types but got %t", ty));
 			ty_ = top-down-break visit (ty){
 				case (Type)`<Type t> []` => t
 				case Type t => t
@@ -260,7 +261,7 @@ void collect(current:(DeclInChoice) `abstract <Type ty> <Id id>`,  Collector c) 
 
 void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`,  Collector c) {
 	c.require("declared type", ty, [ty], void(Solver s){
-		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type"));
+		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type but it was %t", ty));
 	});
 	collect(ty, c);
 	for (aargs <- args){
@@ -476,9 +477,11 @@ tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole
 AType getTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){
     if(anonType(fields) :=  containerType){
     	return Set::getOneFrom((ListRelation::index(fields))["<selector>"]);
-    }else{
-    	println(containerType);
-    	s.report(error(selector, "Undefined field <selector> on %t",containerType));
+    } else if (consType(_) := containerType){
+    	return containerType;	
+    }
+    else
+    {	s.report(error(selector, "Undefined field <selector> on %t",containerType));
     }
 }
 
