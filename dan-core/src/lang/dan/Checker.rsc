@@ -267,8 +267,6 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
      			for (f <- abstractFields){
      				try{
-     					println(s.getType(ty));
-     					println("<f.id>");
      					AType t = s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
      				}catch _:{
      					s.report(error(ty, "Missing implementation of abstract field")); 
