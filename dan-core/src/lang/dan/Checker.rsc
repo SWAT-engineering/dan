@@ -104,6 +104,9 @@ AType infixArithmetic(u32(), u16()) = intType();
 AType infixArithmetic(u16(), u32()) = intType();
 AType infixArithmetic(intType(), u16()) = intType();
 
+// TODO make it more flexible
+AType infixConcat(listType(t), listType(t)) = listType(t);
+
 default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
 
 bool isUserDefined(refType(_)) = true;
@@ -473,6 +476,11 @@ void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
 void collect(current: (Expr) `<Expr e1> * <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "*", infixArithmetic, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> ++ <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "++", infixConcat, e1, e2, c); 
 }
 
 void collect(current: (Expr) `(<Expr e>)`, Collector c){

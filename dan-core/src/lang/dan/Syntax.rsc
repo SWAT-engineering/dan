@@ -61,6 +61,7 @@ syntax Expr
 	| Expr "." Id
 	> "-" Expr
 	> Expr UnaryOperator Expr
+	> Expr "++" Expr
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
