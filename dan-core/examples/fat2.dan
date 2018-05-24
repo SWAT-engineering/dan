@@ -62,6 +62,8 @@ struct BiosParameterBlock{
 }
 
 struct BPB20{
+	BPB20 block2_0
+	u8 clusterSize
 	u8 logicalSectorsPerFat
 	u8 bytesPerLogicalSector
 	u8 fatCount
@@ -80,10 +82,29 @@ struct DirectoryEntry(Type nestedFilesParser, BPB20 bpe, int firstFat, int first
   u16[] _[6] // another way of ignoring fields
   u16 fileStartCluster
   u32 fileSize
-  //FileCluster fileData(fileStartCluster, bpe.clusterSize, firstRoot + bpe.block_2_0.maxRootDirectoryEntryCount)
+  FileCluster fileData(fileStartCluster, bpe.clusterSize, firstRoot + bpe.block2_0.maxRootDirectoryEntryCount)
   
     
   // need to think about this syntax around nested parsing, and the cat & ranges syntax
 
   //Token fileEntry = parse(nestedFilesParser, fileData.fullContent[:fileSize])  // filterEntry has the top token type
+}
+
+
+choice FileCluster(u16 myCluster, u32 clusterSize, int clusterStart)
+    @(offset = clusterStart + (myCluster * clusterSize)){
+  abstract u8[] fullContent  // this is not ambiguous anymore, so maybe abstract keyword is not needed
+  
+  struct{
+    // pending how to express this
+    u16 nextCluster?(!= 0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    FileCluster nextFileCluster(nextCluster, clusterSize, clusterStart)
+    u8[] fullContent = fileContents ++ nextFileCluster.fullContent
+  }
+  struct{
+    u16 nextCluster ? (== 0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    u8[] fullContent = fileContents
+  }
 }
