@@ -93,14 +93,29 @@ AType infixEquality(AType t1, AType t2) = boolType()
 	when t1 == t2;
 default AType infixEquality(AType t1, AType t2){ throw "Wrong operands for equality"; }
 
+// TODO All the possible combinations!!
 AType infixArithmetic(intType(), intType()) = intType();
 AType infixArithmetic(u8(), intType()) = intType();
 AType infixArithmetic(u8(), u8()) = intType();
 AType infixArithmetic(intType(), u8()) = intType();
 AType infixArithmetic(u16(), intType()) = intType();
-AType infixArithmetic(u16(), 16()) = intType();
 AType infixArithmetic(intType(), u16()) = intType();
+AType infixArithmetic(u32(), u16()) = intType();
+AType infixArithmetic(u16(), u32()) = intType();
+AType infixArithmetic(intType(), u16()) = intType();
+
 default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
+
+bool isUserDefined(refType(_)) = true;
+bool isUserDefined(listType(t)) = isUserDefined(t);
+default bool isUserDefined(AType t) = false;
+
+str getUserDefinedName(refType(id)) = id;
+str getUserDefinedName(listType(t)) = getUserDefinedName(t);
+default str getUserDefinedName(AType t){ throw "Operation not defined on non-user defined types."; }
+
+Type getNestedType((Type) `<Type t> []`) = getNestedType(t);
+default Type getNestedType(Type t) = t;
 
 
 // ----  Collect definitions, uses and requirements -----------------------
@@ -119,14 +134,13 @@ Tree fixLocation(Tree tr, loc newLoc) =
         	when t has \loc
 	 }; 
 	 
-
+Tree newConstructorId(Id id) = [Id] "<id>__";
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
      c.define("<id>", structId(), current, defType(refType("<id>")));
      //collect(id, formals, c);
      c.enterScope(current); {
-     	for (fs <- formals)
-     		collectFormals(id, fs, c);
+     	collectFormals(id, formals, c);
      	collect(decls, c);
     }
     c.leaveScope(current);
@@ -153,9 +167,8 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 		c.define("<id>", fieldId(), id, defType(ty));
 	}
 	collect(ty, c);
-	for (aargs <- args){
-		collectArgs(ty, aargs, c);
-	}
+	collectArgs(ty, args, c);
+	
 	for (sz <-size){
 		collectSize(ty, sz, c);
 	}
@@ -180,36 +193,48 @@ void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo
 	//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 }
 
-void collectSize(Type ty, Size sz, Collector c){
-	collect(sz.expr, c);
-	c.require("size argument", sz, [ty] + [sz.expr], void (Solver s) {
+void collectSize(Type ty, sz:(Size) `[<Expr e>]`, Collector c){
+	collect(e, c);
+	c.require("size argument", sz, [ty] + [e], void (Solver s) {
 		s.requireTrue(s.getType(ty) is listType, error(sz, "Setting size on a non-list element"));
-		s.requireSubtype(s.getType(sz.expr), intType(), error(sz, "Size must be an integer"));
+		s.requireSubtype(s.getType(e), intType(), error(sz, "Size must be an integer"));
 	});
 }
 
-void collectArgs(Type ty, Arguments current, Collector c){
+void collectArgs(Type ty, Arguments? current, Collector c){
 		currentScope = c.getScope();
-		for (a <- current.args)
+		for (aargs <- current, a <- aargs.args){
 			collect(a, c);
-		c.require("constructor arguments", current, [ty] + [a | a <- current.args], void (Solver s) {
-			s.requireTrue(refType(_) := s.getType(ty)  || listType(refType(_)) := s.getType(ty), error(current, "Constructor arguments only apply to user-defined types but got %t", ty));
-			ty_ = top-down-break visit (ty){
-				case (Type)`<Type t> []` => t
-				case Type t => t
-			};
-			tyLoc = ty@\loc;
-			conId = fixLocation(parse(#Type, "<ty_>"), tyLoc[offset=tyLoc.offset + tyLoc.length]);
-			ct = s.getTypeInType(s.getType(ty_), conId, {consId()}, currentScope);
-			argTypes = atypeList([ s.getType(a) | a <- current.args ]);
-			s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+		}
+		c.require("constructor arguments", current, 
+			  [ty] + [a |aargs <- current, a <- aargs.args], void (Solver s) {
+			if (aargs <- current && !isUserDefined(s.getType(ty)))
+				s.report(error(current, "Constructor arguments only apply to user-defined types but got %t", ty));
+			if (isUserDefined(s.getType(ty))){
+				idStr = getUserDefinedName(s.getType(ty));
+				//ty_ = top-down-break visit (ty){
+				//	case (Type)`<Type t> []` => t
+				//	case Type t => t
+				//};
+				//tyLoc = ty@\loc;
+				//conId = fixLocation(parse(#Type, "<ty_>"), tyLoc[offset=tyLoc.offset + tyLoc.length]);
+				//conId = fixLocation(parse(#Type, "<ty_>"), tyLoc);
+				ty_ = getNestedType(ty);
+				AType t = s.getType(ty_);
+				//println(t);
+				//println(conId);
+				//println(currentScope);
+				ct = s.getTypeInType(t, newConstructorId([Id] "<idStr>"), {consId()}, currentScope);
+				//argTypes = atypeList([ s.getType(a) | aargs <- current, a <- aargs.args]);
+				//s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+			}
 		});
 	
 }
 
-void collectFormals(Id id, Formals current, Collector c){
-	actualFormals = [af | af <- current.formals];
-	c.define("<id>", consId(), id, defType(actualFormals, AType(Solver s) {
+void collectFormals(Id id, Formals? current, Collector c){
+	actualFormals = [af | fformals <- current, af <- fformals.formals];
+	c.define("<newConstructorId(id)>", consId(), id, defType(actualFormals, AType(Solver s) {
      		return consType(atypeList([s.getType(a) | a <- actualFormals]));
     }));
     collect(actualFormals, c);
@@ -219,8 +244,7 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
 	 // TODO  explore `Solver.getAllDefinedInType` for implementing the check of abstract fields
 	 c.define("<id>", structId(), current, defType(refType("<id>")));
      c.enterScope(current); {
-     	for (fs <- formals)
-     		collectFormals(id, fs, c);
+     	collectFormals(id, formals, c);
      	collect(decls, c);
      	ts = for (d <- decls){
      			switch (d){
@@ -240,6 +264,8 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
      			for (f <- abstractFields){
      				try{
+     					println(s.getType(ty));
+     					println("<f.id>");
      					AType t = s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
      				}catch _:{
      					s.report(error(ty, "Missing implementation of abstract field")); 
@@ -265,11 +291,8 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 		s.requireTrue(isTokenType(s.getType(ty)), error(ty, "Non-initialized fields must be of a token type but it was %t", ty));
 	});
 	collect(ty, c);
-	for (aargs <- args){
-		// TODO check if it works to pass ty as second argument, i.e.,
-		// parent node of new artificially created node
-		collectArgs(ty, aargs, c);
-	}
+	collectArgs(ty, args, c);
+	
 	for (sz <-size){
 		collectSize(ty, sz, c);
 	}
@@ -454,6 +477,8 @@ void collect(current: (Expr) `<Expr e1> * <Expr e2>`, Collector c){
 
 void collect(current: (Expr) `(<Expr e>)`, Collector c){
     collect(e, c); 
+    // TODO is this really necessary
+    c.calculate("parenthesized expression", current, [e], AType(Solver s){ return s.getType(e); });
 }
 
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
@@ -475,11 +500,9 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
-AType getTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){
+AType danGetTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){
     if(anonType(fields) :=  containerType){
     	return Set::getOneFrom((ListRelation::index(fields))["<selector>"]);
-    } else if (consType(_) := containerType){
-    	return containerType;	
     }
     else
     {	s.report(error(selector, "Undefined field <selector> on %t",containerType));
@@ -489,8 +512,8 @@ AType getTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, So
 private TypePalConfig getDanConfig() = tconfig(
     isSubType = isConvertible,
     getTypeNameAndRole = danGetTypeNameAndRole,
-    getTypeInNamelessType = getTypeInAnonymousStruct,
-    mayOverload = bool(set[loc] defs, map[loc, Define] defines){
+    getTypeInNamelessType = danGetTypeInAnonymousStruct,
+     mayOverload = bool(set[loc] defs, map[loc, Define] defines){
     	// TODO do it just for the constructors 
     	return true;
     }
