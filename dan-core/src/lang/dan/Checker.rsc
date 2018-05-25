@@ -8,6 +8,7 @@ import Set;
 extend analysis::typepal::TypePal;
 extend analysis::typepal::TypePalConfig;
 
+lexical ConsId =  "$" ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
 data AType
 	= intType()
@@ -137,7 +138,7 @@ Tree fixLocation(Tree tr, loc newLoc) =
         	when t has \loc
 	 }; 
 	 
-Tree newConstructorId(Id id) = [Id] "<id>__";
+Tree newConstructorId(Id id) = [ConsId] "$<id>";
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
      c.define("<id>", structId(), current, defType(refType("<id>")));
