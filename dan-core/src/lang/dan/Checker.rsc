@@ -4,6 +4,7 @@ import lang::dan::Syntax;
 import util::Math;
 import ListRelation;
 import Set;
+import String;
 
 extend analysis::typepal::TypePal;
 extend analysis::typepal::TypePalConfig;
@@ -18,10 +19,7 @@ data AType
 	| consType(AType formals)
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
-	| u8()
-	| u16()
-	| u32()
-	| u64()
+	| u(int n)
 	;
 	
 data IdRole
@@ -36,10 +34,7 @@ data IdRole
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
 
-bool isPrimitiveToken(u8()) = true;
-bool isPrimitiveToken(u16()) = true;
-bool isPrimitiveToken(u32()) = true;
-bool isPrimitiveToken(u64()) = true;
+bool isPrimitiveToken(u(_)) = true;
 default bool isPrimitiveToken(AType t) = false;
 
 bool isConvertible(AType t, intType()) = true
@@ -61,10 +56,7 @@ str prettyPrintAType(boolType()) = "bool";
 str prettyPrintAType(listType(t)) = "<prettyPrintAType(t)>[]";
 str prettyPrintAType(refType(name)) = name;
 str prettyPrintAType(anonType(_)) = "anonymous";
-str prettyPrintAType(u8()) = "u8";
-str prettyPrintAType(u16()) = "u16";
-str prettyPrintAType(u32()) = "u32";
-str prettyPrintAType(u64()) = "u64";
+str prettyPrintAType(u(n)) = "u<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 
 bool isTokenType(AType t) = true
@@ -303,20 +295,8 @@ void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 }
 
 
-void collect(current:(Type)`u8`, Collector c) {
-	c.fact(current, u8());
-}
-
-void collect(current:(Type)`u16`, Collector c) {
-	c.fact(current, u16());
-}
-
-void collect(current:(Type)`u32`, Collector c) {
-	c.fact(current, u32());
-}
-
-void collect(current:(Type)`u64`, Collector c) {
-	c.fact(current, u64());
+void collect(current:(Type)`<UInt v>`, Collector c) {
+	c.fact(current, u(toInt("<v>"[1..])));
 }
 
 void collect(current:(Type)`str`, Collector c) {

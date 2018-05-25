@@ -100,13 +100,12 @@ syntax Type
 	| "int"
 	| "str"
 	| "bool"
-	| "u8"
-	| "u16"
-	| "u32"
-	| "u64"
+	| UInt
 	| AnonStruct
 	| Type "[" "]"
 	;
+	
+lexical UInt = "u" [0-9]+ !>> [0-9];
 	
 lexical NatLiteral
 	=  @category="Constant" [0-9]+ !>> [0-9]
