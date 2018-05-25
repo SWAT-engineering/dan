@@ -34,14 +34,11 @@ data IdRole
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
 
-bool isPrimitiveToken(u(_)) = true;
-default bool isPrimitiveToken(AType t) = false;
-
-bool isConvertible(AType t, intType()) = true
-	when isPrimitiveToken(t);
+bool isConvertible(u(_), intType()) = true;
 	
-bool isConvertible(AType t, strType()) = true
-	when isPrimitiveToken(t);
+bool isConvertible(u(_), strType()) = true;
+	
+bool isConvertible(u(n), u(m)) = true;
 
 // TODO do we want covariant lists?
 bool isConvertible(listType(t1), listType(t2)) = isConvertible(t1, t2);
@@ -59,8 +56,7 @@ str prettyPrintAType(anonType(_)) = "anonymous";
 str prettyPrintAType(u(n)) = "u<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 
-bool isTokenType(AType t) = true
-	when isPrimitiveToken(t);
+bool isTokenType(u(_)) = true;
 bool isTokenType(refType(_)) = true;
 bool isTokenType(anonType(_)) = true;
 bool isTokenType(listType(t)) = isTokenType(t);
@@ -69,30 +65,23 @@ default bool isTokenType(AType t) = false;
 
 AType infixComparator(intType(), intType()) = boolType();
 AType infixComparator(AType t, intType()) = boolType()
-	when isPrimitiveToken(t);
+	when isConvertible(t, intType());
 AType infixComparator(intType(), AType t) = boolType()
-	when isPrimitiveToken(t);
-AType infixComparator(AType t1, AType t2) = boolType()
-	when isPrimitiveToken(t1) && isPrimitiveToken(t2);
+	when isConvertible(t, intType());
+AType infixComparator(u(n), u(m)) = boolType();
 default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a comparator"; }
 
 // TODO Maybe more combinations, e.g., checking equality of a primitive token with a string
 AType infixEquality(AType t, t) = boolType();
-AType infixEquality(AType t, intType()) = boolType()
-	when isPrimitiveToken(t);
-AType infixEquality(intType(), AType t) = boolType()
-	when isPrimitiveToken(t);
-AType infixEquality(AType t1, AType t2) = boolType()
-	when isPrimitiveToken(t1) && isPrimitiveToken(t2);
+AType infixEquality(u(_), intType()) = boolType();
+AType infixEquality(intType(), u(_)) = boolType();
+AType infixEquality(u(n), u(m)) = boolType();
 default AType infixEquality(AType t1, AType t2){ throw "Wrong operands for equality"; }
 
 AType infixArithmetic(intType(), intType()) = intType();
-AType infixArithmetic(AType t, intType()) = intType()
-	when isPrimitiveToken(t);
-AType infixArithmetic(intType(), AType t) = intType()
-	when isPrimitiveToken(t);
-AType infixArithmetic(AType t1, AType t2) = intType()
-	when isPrimitiveToken(t1) && isPrimitiveToken(t2);
+AType infixArithmetic(u(_), intType()) = intType();
+AType infixArithmetic(intType(), u(_)) = intType();
+AType infixArithmetic(u(n), u(m)) = intType();
 default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
 
 // TODO make it more flexible. Does this unify?
