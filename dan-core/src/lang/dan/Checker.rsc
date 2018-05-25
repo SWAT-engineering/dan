@@ -63,25 +63,19 @@ bool isTokenType(listType(t)) = isTokenType(t);
 bool isTokenType(consType(_)) = true;  
 default bool isTokenType(AType t) = false;
 
-AType infixComparator(intType(), intType()) = boolType();
-AType infixComparator(AType t, intType()) = boolType()
-	when isConvertible(t, intType());
-AType infixComparator(intType(), AType t) = boolType()
-	when isConvertible(t, intType());
-AType infixComparator(u(n), u(m)) = boolType();
+AType infixComparator(t1, t2) = boolType()
+	when isConvertible(t1, intType()) && isConvertible(t2, intType());
 default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a comparator"; }
 
-// TODO Maybe more combinations, e.g., checking equality of a primitive token with a string
-AType infixEquality(AType t, t) = boolType();
-AType infixEquality(u(_), intType()) = boolType();
-AType infixEquality(intType(), u(_)) = boolType();
-AType infixEquality(u(n), u(m)) = boolType();
+// TODO Maybe more combinations? Also, there is redundancy between the two following definitions.
+AType infixEquality(t1, t2) = boolType()
+	when isConvertible(t1, intType()) && isConvertible(t2, intType());
+AType infixEquality(t1, t2) = boolType()
+	when isConvertible(t1, strType()) && isConvertible(t2, strType());
 default AType infixEquality(AType t1, AType t2){ throw "Wrong operands for equality"; }
 
-AType infixArithmetic(intType(), intType()) = intType();
-AType infixArithmetic(u(_), intType()) = intType();
-AType infixArithmetic(intType(), u(_)) = intType();
-AType infixArithmetic(u(n), u(m)) = intType();
+AType infixArithmetic(t1, t2) = intType()
+	when isConvertible(t1, intType()) && isConvertible(t2, intType());
 default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
 
 // TODO make it more flexible. Does this unify?
