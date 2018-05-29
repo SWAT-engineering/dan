@@ -26,6 +26,11 @@ data IdRole
     = structId()
     | fieldId()
     | consId()
+    | moduleId()
+    ;
+    
+data PathRole
+    = importPath()
     ;
     	
 //bool danIsSubType(AType _, topTy()) = true;
@@ -94,6 +99,52 @@ default str getUserDefinedName(AType t){ throw "Operation not defined on non-use
 Type getNestedType((Type) `<Type t> []`) = getNestedType(t);
 default Type getNestedType(Type t) = t;
 
+// ---- Modules and imports
+
+PathConfig pathConfig(loc file) {
+   assert file.scheme == "project";
+
+   p = project(file);      
+   cfg = getDefaultPathConfig();
+   
+   cfg.srcs += [ p + "src"];
+   cfg.libs += [ p + "lib"];
+   
+   return cfg;
+}
+
+private str __DAN_IMPORT_QUEUE = "__danImportQueue";
+
+tuple[bool, loc] lookupModule(str name, PathConfig pcfg) {
+    for (s <- pcfg.srcs + pcfg.libs) {
+        result = (s + replaceAll(name, ".", "/"))[extension = "dan"];
+        if (exists(result)) {
+            return <true, result>;
+        }
+    }
+    return <false, |invalid:///|>;
+}
+
+void collect(current:(Import) `import <Id name>`, Collector c) {
+    c.useViaPath(name, {moduleId()}, importPath());
+    c.push(__DAN_IMPORT_QUEUE, "<name>");
+}
+
+void handleImports(Collector c, Tree root, PathConfig pcfg) {
+    imported = {};
+    while (list[str] modulesToImport := c.getStack(__DAN_IMPORT_QUEUE) && modulesToImport != []) {
+        c.clearStack(__DAN_IMPORT_QUEUE);
+        for (m <- modulesToImport, m notin imported) {
+            if (<true, l> := lookupModule(m, pcfg)) {
+                collect(parse(#start[Program], l).top, c);
+            }
+            else {
+                c.report(error(root, "Cannot find module %v in %v or %v", m, pcfg.srcs, pcfg.libs));
+            }
+            imported += m; 
+        }
+    }
+}
 
 // ----  Collect definitions, uses and requirements -----------------------
 
@@ -462,7 +513,11 @@ void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, T
 
 // ----  Examples & Tests --------------------------------
 TModel danTModelFromTree(Tree pt, bool debug = false){
-    return collectAndSolve(pt, config=getDanConfig(), debug=debug);
+    if (pt has top) pt = pt.top;
+    c = newCollector("collectAndSolve", pt, config=getDanConfig(), debug=debug);    // TODO get more meaningfull name
+    collect(pt, c);
+    handleImports(c, pt, pathConfig());
+    return newSolver(pt, c.run(), debug=debug).run();
 }
 
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
@@ -486,6 +541,7 @@ private TypePalConfig getDanConfig() = tconfig(
     	return true;
     }
 );
+
 
 public Program sampleDan(str name) = parse(#Program, |project://dan-core/examples/<name>.dan|);
 
