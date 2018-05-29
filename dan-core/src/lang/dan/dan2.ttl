@@ -1,4 +1,6 @@
 test D1 [[
+    module m
+    
     struct Person{
     	int offset = 5
 		u8[] bootCode[0x1fd - offset]
@@ -6,6 +8,8 @@ test D1 [[
 ]]
 
 test D2 [[
+    module m
+    
     struct Person{
     	Address address
 		u8[] bootCode[0x1fd - address.number]
@@ -17,12 +21,16 @@ test D2 [[
 ]]
 
 test D3 [[
+    module m
+    
     struct Person{
     	u8[] bootCode[0x1fd - bootCode.offset]
 	}
 ]]
 
 test D4 [[
+    module m
+    
     struct Person{
     	int foo = 5
     	u8[] bootCode[0x1fd - foo.offset]
@@ -30,6 +38,8 @@ test D4 [[
 ]] expect { "Only token types have offsets" }
 
 test D5 [[
+    module m
+    
     struct Person{
     	struct{
     		int number = 5
@@ -38,6 +48,8 @@ test D5 [[
 ]]
 
 test D6 [[
+    module m
+    
     struct Person{
     	struct{
     		int number = 5
@@ -47,6 +59,8 @@ test D6 [[
 ]]
 
 test D7 [[
+    module m
+    
     struct Person{
     	u8[] grades
     	int firstGrade = grades[0]
@@ -55,6 +69,8 @@ test D7 [[
 
 
 test D8 [[
+    module m
+    
     struct Person{
     	u8[] grades
     	int[] firstGrades = grades[0:2]
@@ -62,6 +78,8 @@ test D8 [[
 ]]
 
 test D9 [[
+    module m
+    
     struct Person{
     	u8[] grades
     	int[] lastGrades = grades[:2]
@@ -70,6 +88,8 @@ test D9 [[
 
 
 test D10 [[
+    module m
+    
     struct Person{
     	u8[] grades
     	int[] gradesFrom = grades[0:]
@@ -77,6 +97,8 @@ test D10 [[
 ]]
 
 test D11 [[
+module m
+
 choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   struct{
   	u16 nextCluster ? (!= 0xFFF8)
@@ -88,6 +110,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]]
 
 test D12 [[
+module m
+    
 choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   abstract u16 nextCluster
   struct{
@@ -100,6 +124,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]]
 
 test D13 [[
+module m
+    
 choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   abstract u16 nextCluster
   struct{
@@ -112,6 +138,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]] expect { "Missing implementation of abstract field" }
 
 test D14 [[
+module m
+    
 struct AuxStruct{
 	u16 nextCluster ? (== 0xFFF8)
 }
@@ -126,6 +154,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]]
 
 test D15 [[
+module m
+    
 struct AuxStruct{
 }
 
@@ -139,6 +169,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]] expect { "Missing implementation of abstract field" }
 
 test D16 [[
+module m
+    
 struct AuxStruct{
 	u16 nextCluster ? (== 0xFFF8)
 	FileCluster2 other
@@ -155,6 +187,8 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
 ]]
 
 test D17 [[
+module m
+    
 struct BPB20{
 	u8 logicalSectorsPerFat
 	u8 bytesPerLogicalSector
@@ -168,6 +202,8 @@ struct FAT(BPB20 bootSector){
 ]]
 
 test D18 [[
+module m
+    
 struct DirectoryEntry{
   u8[] _[2] // ignored fields
   u16[] _[6] // another way of ignoring fields
@@ -175,6 +211,8 @@ struct DirectoryEntry{
 ]]
 
 test D19[[
+module m
+    
 struct FORMAT_ZIP@(encoding = LittleIndian){
 	struct{
 	} _	
@@ -182,6 +220,8 @@ struct FORMAT_ZIP@(encoding = LittleIndian){
 ]]
 
 test D20[[
+module m
+    
 struct A{
 	B b(1,2)
 }

@@ -1,3 +1,5 @@
+module fat
+
 choice FORMAT(Type format){
 	// TODO the above apparently needs to be parameterized
 	FAT16Format(format)

@@ -2,15 +2,20 @@ module lang::dan::Syntax
 
 extend lang::std::Layout;
 
-keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool";
-
+keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool" | "module" | "import";
 
 start syntax Program =
+	"module" Id
+	Import* imports
 	TopLevelDecl* declarations;
 
 lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
 lexical DId = Id | "_";
+
+syntax Import
+	= "import" Id
+	;
 	
 syntax TopLevelDecl
 	= "struct" Id Formals? Annos? "{" DeclInStruct* declarations "}"

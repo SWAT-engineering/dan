@@ -98,7 +98,7 @@ default Type getNestedType(Type t) = t;
 // ----  Collect definitions, uses and requirements -----------------------
 
 
-void collect(current: (Program) `<TopLevelDecl* decls>`, Collector c){
+void collect(current: (Program) `module <Id moduleId> <Import* imports> <TopLevelDecl* decls>`, Collector c){
     c.enterScope(current);
     currentScope = c.getScope();
     	collect(decls, c);

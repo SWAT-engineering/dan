@@ -1,4 +1,6 @@
 test D1 [[
+	module m
+	
     struct Person{
 		int age = 20
 		str name = "Ignacio"
@@ -6,6 +8,8 @@ test D1 [[
 ]]
 
 test D2 [[
+	module m
+	
     struct Person{
 		int age = 20
 		str name = 20
@@ -13,6 +17,8 @@ test D2 [[
 ]] expect { "Expression should be str, found int" }
 
 test D3 [[
+	module m
+	
     struct Address(str c){
 		int housenumber = 221
 		str city = "put here reference to variable c" 
@@ -25,6 +31,8 @@ test D3 [[
 ]]
 
 test D4 [[
+	module m
+	
     struct Address(str c){
 		int housenumber = 221
 		str city = "put here reference to variable c" 
@@ -37,6 +45,8 @@ test D4 [[
 ]] expect { "Setting size on a non-list element" }
 
 test D5 [[
+	module m
+	
     struct Address(str c){
 		int housenumber = 221
 		str city = "put here reference to variable c" 
@@ -49,6 +59,8 @@ test D5 [[
 ]]
 
 test D6 [[
+	module m
+	
     struct Address(str c){
 		int housenumber = 221
 		str city = c
@@ -56,6 +68,8 @@ test D6 [[
 ]] 
 
 test D7 [[
+	module m
+	
     struct Address(bool c){
 		int housenumber = 221
 		str city = c
@@ -63,24 +77,32 @@ test D7 [[
 ]] expect { "Expression should be str, found bool" }
 
 test D8 [[
+	module m
+	
     struct Address{
 		u8 housenumber ?(> 25)
 	}
 ]]
 
 test D9 [[
+	module m
+	
     struct Address{
 		Address housenumber ?(> 25)
 	}
 ]]  
 
 test D10 [[
+	module m
+	
     struct Address{
     	u8 housenumber ?(2 > 25)
 	}
 ]]
 
 test D11 [[
+	module m
+	
     struct Address{
     	u8 housenumber ?("2" > "25")
 	}
@@ -88,24 +110,32 @@ test D11 [[
 
 
 test D12 [[
+	module m
+	
     struct Address{
     	bool housenumber ?("2" == 2)
 	}
 ]] expect { "Wrong operands for equality" }
 
 test D13 [[
+	module m
+	
     struct Address{
     	u8 housenumber ?("2" == "1")
 	}
 ]]
 
 test D14 [[
+	module m
+	
     struct Address{
     	u8 housenumber ?("2" == "1")
 	}
 ]]
 
 test D15 [[
+	module m
+	
     struct Address{
     	int foo = 5
     	u8 housenumber ?(foo > 1)
@@ -113,6 +143,8 @@ test D15 [[
 ]]
 
 test D16 [[
+	module m
+	
     struct Address{
     	Address foo
     	u8 housenumber ?(foo == 4)
@@ -120,12 +152,16 @@ test D16 [[
 ]] expect { "Wrong operands for equality" }
 
 test D17 [[
+	module m
+	
     struct Address{
     	u8 housenumber ?(this > 1)
 	}
 ]]
 
 test D18 [[
+	module m
+	
     struct Person{
 		int age = 20
 		str name = "Ignacio"
@@ -138,12 +174,16 @@ test D18 [[
 ]]
 
 test D19 [[
+	module m
+	
     struct Foo{
 		u8[] foo[3]
 	}	
 ]]
 
 test D20 [[
+	module m
+	
     struct Foo{
 		u8 foo(3)
 	}	
