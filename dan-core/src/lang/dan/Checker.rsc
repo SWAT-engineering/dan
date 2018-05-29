@@ -19,7 +19,7 @@ data AType
 	| consType(AType formals)
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
-	| u(int n)
+	| uType(int n)
 	;
 	
 data IdRole
@@ -34,11 +34,11 @@ data IdRole
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
 
-bool isConvertible(u(_), intType()) = true;
+bool isConvertible(uType(_), intType()) = true;
 	
-bool isConvertible(u(_), strType()) = true;
+bool isConvertible(uType(_), strType()) = true;
 	
-bool isConvertible(u(n), u(m)) = true;
+bool isConvertible(uType(n), uType(m)) = true;
 
 // TODO do we want covariant lists?
 bool isConvertible(listType(t1), listType(t2)) = isConvertible(t1, t2);
@@ -53,10 +53,10 @@ str prettyPrintAType(boolType()) = "bool";
 str prettyPrintAType(listType(t)) = "<prettyPrintAType(t)>[]";
 str prettyPrintAType(refType(name)) = name;
 str prettyPrintAType(anonType(_)) = "anonymous";
-str prettyPrintAType(u(n)) = "u<n>";
+str prettyPrintAType(uType(n)) = "uType<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 
-bool isTokenType(u(_)) = true;
+bool isTokenType(uType(_)) = true;
 bool isTokenType(refType(_)) = true;
 bool isTokenType(anonType(_)) = true;
 bool isTokenType(listType(t)) = isTokenType(t);
@@ -279,7 +279,7 @@ void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 
 
 void collect(current:(Type)`<UInt v>`, Collector c) {
-	c.fact(current, u(toInt("<v>"[1..])));
+	c.fact(current, uType(toInt("<v>"[1..])));
 }
 
 void collect(current:(Type)`str`, Collector c) {
