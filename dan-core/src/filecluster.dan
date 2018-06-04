@@ -1,0 +1,19 @@
+module filecluster
+
+choice FileCluster(u16 myCluster, u32 clusterSize, int clusterStart)
+    @(offset = clusterStart + (myCluster * clusterSize)){
+  abstract u8[] fullContent  // this is not ambiguous anymore, so maybe abstract keyword is not needed
+  
+  struct{
+    // pending how to express this
+    u16 nextCluster?(!= 0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    FileCluster nextFileCluster(nextCluster, clusterSize, clusterStart)
+    u8[] fullContent = fileContents ++ nextFileCluster.fullContent
+  }
+  struct{
+    u16 nextCluster ? (== 0xFFF8)
+    u8[] fileContents[(myCluster * clusterSize) - 2]
+    u8[] fullContent = fileContents
+  }
+}

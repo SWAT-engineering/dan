@@ -20,6 +20,7 @@ data AType
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
 	| uType(int n)
+	| moduleType()
 	;
 	
 data IdRole
@@ -101,11 +102,16 @@ default Type getNestedType(Type t) = t;
 
 // ---- Modules and imports
 
+private loc project(loc file) {
+   assert file.scheme == "project";
+   return |project://<file.authority>|;
+}
+
 PathConfig pathConfig(loc file) {
    assert file.scheme == "project";
 
    p = project(file);      
-   cfg = getDefaultPathConfig();
+   cfg = pathConfig();
    
    cfg.srcs += [ p + "src"];
    cfg.libs += [ p + "lib"];
@@ -149,8 +155,10 @@ void handleImports(Collector c, Tree root, PathConfig pcfg) {
 // ----  Collect definitions, uses and requirements -----------------------
 
 
-void collect(current: (Program) `module <Id moduleId> <Import* imports> <TopLevelDecl* decls>`, Collector c){
+void collect(current: (Program) `module <Id moduleName> <Import* imports> <TopLevelDecl* decls>`, Collector c){
+ 	c.define("<moduleName>", moduleId(), current, defType(moduleType()));
     c.enterScope(current);
+    collect(imports, c);
     currentScope = c.getScope();
     	collect(decls, c);
     c.leaveScope(current);
@@ -516,7 +524,7 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
     if (pt has top) pt = pt.top;
     c = newCollector("collectAndSolve", pt, config=getDanConfig(), debug=debug);    // TODO get more meaningfull name
     collect(pt, c);
-    handleImports(c, pt, pathConfig());
+    handleImports(c, pt, pathConfig(pt@\loc));
     return newSolver(pt, c.run(), debug=debug).run();
 }
 
@@ -543,7 +551,7 @@ private TypePalConfig getDanConfig() = tconfig(
 );
 
 
-public Program sampleDan(str name) = parse(#Program, |project://dan-core/examples/<name>.dan|);
+public start[Program] sampleDan(str name) = parse(#start[Program], |project://dan-core/<name>.dan|);
 
 list[Message] runDan(str name, bool debug = false) {
     Tree pt = sampleDan(name);
