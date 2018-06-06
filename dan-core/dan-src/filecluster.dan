@@ -1,6 +1,6 @@
 module filecluster
 
-choice FileCluster(u16 myCluster, u32 clusterSize, int clusterStart)
+choice FileCluster(u16 myCluster, u8 clusterSize, int clusterStart)
     @(offset = clusterStart + (myCluster * clusterSize)){
   abstract u8[] fullContent  // this is not ambiguous anymore, so maybe abstract keyword is not needed
   

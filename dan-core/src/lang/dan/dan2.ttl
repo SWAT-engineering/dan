@@ -173,7 +173,7 @@ module m
     
 struct AuxStruct{
 	u16 nextCluster ? (== 0xFFF8)
-	FileCluster2 other
+	FileCluster2 other(nextCluster, nextCluster, 0)
 	u16 otherCluster = other.nextCluster
 }
 

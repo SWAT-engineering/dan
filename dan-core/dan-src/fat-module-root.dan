@@ -2,7 +2,7 @@ module fat
 
 import filecluster
 
-choice FORMAT(Type format){
+choice FORMAT(typ format){
 	// TODO the above apparently needs to be parameterized
 	FAT16Format(format)
 	//SinglezZipFormat
@@ -23,7 +23,7 @@ struct Type{
 
 }
 
-struct FAT16Format(Type format)@(encoding = LittleIndian){
+struct FAT16Format(typ format)@(encoding = LittleIndian){
 	Reserved reserved
   	BPB20 block = reserved.boot.block2_0 // types of derived things can be inferred
   	FAT[] fatArea(block)[block.fatCount]
@@ -31,7 +31,7 @@ struct FAT16Format(Type format)@(encoding = LittleIndian){
 }
 
 
-choice RootDirectory (Type format, BPB20 bpe, int firstFat, int firstRoot){
+choice RootDirectory (typ format, BPB20 bpe, int firstFat, int firstRoot){
   // TODO EmptyEntry
   // TODO VFATLongFileName
   DirectoryEntry(format, bpe, firstFat, firstRoot)
@@ -78,7 +78,9 @@ struct FAT(BPB20 bootSector){
   u8[] table[bootSector.logicalSectorsPerFat * bootSector.bytesPerLogicalSector]   // might need to skip
 }
 
-struct DirectoryEntry(Type nestedFilesParser, BPB20 bpe, int firstFat, int firstRoot){
+u8[] parse(typ parser, u8[] content)
+
+struct DirectoryEntry(typ nestedFilesParser, BPB20 bpe, int firstFat, int firstRoot){
   u8[] shortFileName[8]
   u8[] extension[3]
   u8 attributes
@@ -91,5 +93,5 @@ struct DirectoryEntry(Type nestedFilesParser, BPB20 bpe, int firstFat, int first
     
   // need to think about this syntax around nested parsing, and the cat & ranges syntax
 
-  //Token fileEntry = parse(nestedFilesParser, fileData.fullContent[:fileSize])  // filterEntry has the top token type
+  u8[] fileEntry = parse(nestedFilesParser, fileData.fullContent[:fileSize])  // filterEntry has the top token type
 }
