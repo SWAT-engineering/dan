@@ -1,0 +1,5 @@
+module whileExample
+
+struct A{
+	u8[] xs while (it != "A")
+}

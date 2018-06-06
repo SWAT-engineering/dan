@@ -18,10 +18,6 @@ struct FORMAT_ZIP@(encoding = LittleIndian){
 	//EndOfDir _		
 }
 
-// TODO auxiliar
-struct Type{
-
-}
 
 struct FAT16Format(typ format)@(encoding = LittleIndian){
 	Reserved reserved
@@ -43,12 +39,11 @@ struct Reserved{
   BootSector boot
   u8[] restData[size]
 
-  int size = 0//boot.biosBlock.block_2_0.bytesPerLogicalSector  * (boot.biosBlock.block_2_0.reservedSectorCount - 1) // How to do coercion? or polymorphic operators?
+  int size = boot.biosBlock.block2_0.bytesPerLogicalSector  * (boot.biosBlock.block2_0.reservedSectorCount - 1) // How to do coercion? or polymorphic operators?
 }
 
 struct BootSector{
-  // TODO add u24
-  u16 jumpInstruction
+  u24 jumpInstruction
   u8[] oemName[8]
   BiosParameterBlock biosBlock
   u8[] bootCode[0x1fd - bootCode.offset] // a self offset link. Alternatively, it could be a `offset` special variable as `this` in Java
@@ -72,6 +67,7 @@ struct BPB20{
 	u8 bytesPerLogicalSector
 	u8 fatCount
 	u8 maxRootDirectoryEntryCount
+	u8 reservedSectorCount
 }
 
 struct FAT(BPB20 bootSector){

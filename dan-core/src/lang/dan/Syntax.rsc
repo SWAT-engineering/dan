@@ -2,14 +2,15 @@ module lang::dan::Syntax
 
 extend lang::std::Layout;
 
-keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool" | "typ" | "module" | "import";
+// TODO can we specify a pattern for u? types
+keyword Reserved = "abstract" | "struct" | "choice"  | "int" | "str" | "bool" | "typ" | "module" | "import" | "u8" | "u16" | "u24" | "u32" | "u64" | "u128" | "while"  | "this" | "it";
 
 start syntax Program =
 	"module" Id
 	Import* imports
 	TopLevelDecl* declarations;
 
-lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
+lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved | "this" | "it";
 
 lexical DId = Id | "_";
 
@@ -48,6 +49,7 @@ syntax Size
 syntax SideCondition 
 	= "?" "(" Expr ")"
 	| "?" "(" UnaryExpr ")"
+	| "while" "(" Expr ")"
 	;
 	
 	
@@ -98,7 +100,7 @@ syntax DeclInChoice
 	;
 
 syntax AnonStruct
-	= "struct" "{" DeclInStruct* declarations "}"
+	= "struct" "{" DeclInStruct* declarations "}"dime
 	;
 	
 syntax Type
