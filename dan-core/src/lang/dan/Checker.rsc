@@ -285,8 +285,7 @@ void collectArgs(Type ty, Arguments? current, Collector c){
 	
 }
 
-void collectArgs2(Id id, Arguments current, Collector c){
-		currentScope = c.getScope();
+void collectFunctionArgs(Id id, Arguments current, Collector c){
 		for (a <- current.args){
 			collect(a, c);
 		}
@@ -296,10 +295,9 @@ void collectArgs2(Id id, Arguments current, Collector c){
 			if (!funType(_,_,_) := ty)
 				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
 			else{
-				t = ty;
-				// ct = s.getTypeInType(t, newConstructorId([Id] "<id>"), {consId()}, currentScope);
-				//argTypes = atypeList([ s.getType(a) |  a <- current.args]);
-				//s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+				funType(_, _, formals) = ty;
+			    argTypes = atypeList([ s.getType(a) |  a <- current.args]);
+				s.requireSubtype(formals, argTypes, error(current, "Wrong type of arguments"));
 			}
 		});
 	
@@ -462,15 +460,15 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 
 void collect(current: (Expr) `<Id id> <Arguments args>`, Collector c){
 	c.use(id, {funId()});
-	//collectArgs2(id, args, c);
-	c.calculate("function call", current, [id], AType(Solver s){
+	collectFunctionArgs(id, args, c);
+	c.calculate("function call", current, [id] + [a | a <- args.args], AType(Solver s){
 		ty = s.getType(id);
 		if (!funType(_, _, _) := ty)
 				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
 		else{
 			funType(_, retType, _) = ty;
 			return retType;
-			//s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+			
 		}
 	});	
 }
