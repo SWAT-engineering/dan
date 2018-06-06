@@ -15,8 +15,10 @@ data AType
 	= intType()
 	| strType()
 	| boolType()
+	| typeType()
 	| listType(AType ty)
 	| consType(AType formals)
+	| funType(str name, AType returnType, AType formals)
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
 	| uType(int n)
@@ -28,6 +30,7 @@ data IdRole
     | fieldId()
     | consId()
     | moduleId()
+    | funId()
     ;
     
 data PathRole
@@ -39,6 +42,9 @@ data PathRole
 //bool danIsSubType(AType t1, AType t2) = true
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
+
+bool isConvertible(atypeList(vs), atypeList(ws))
+	= (true | isConvertible(v, w) && it | <v,w> <- zip(vs, ws));
 
 bool isConvertible(uType(_), intType()) = true;
 	
@@ -61,6 +67,7 @@ str prettyPrintAType(refType(name)) = name;
 str prettyPrintAType(anonType(_)) = "anonymous";
 str prettyPrintAType(uType(n)) = "uType<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
+str prettyPrintAType(funType(name,_,_)) = "fun <name>";
 
 bool isTokenType(uType(_)) = true;
 bool isTokenType(refType(_)) = true;
@@ -113,8 +120,8 @@ PathConfig pathConfig(loc file) {
    p = project(file);      
    cfg = pathConfig();
    
-   cfg.srcs += [ p + "src"];
-   cfg.libs += [ p + "lib"];
+   cfg.srcs += [ p + "dan-src"];
+   cfg.libs += [ p + "dan-lib"];
    
    return cfg;
 }
@@ -180,6 +187,16 @@ void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? a
      	collect(decls, c);
     }
     c.leaveScope(current);
+}
+
+void collect(current:(TopLevelDecl) `<Type t> <Id id> <Formals? formals>`,  Collector c) {
+     actualFormals = [af | fformals <- formals, af <- fformals.formals];
+     collect(t, c);
+     collect(actualFormals, c);
+     c.define("<id>", funId(), current, defType([t] + actualFormals, AType(Solver s) {
+     	return funType("<id>", s.getType(t), atypeList([s.getType(a) | a <- actualFormals]));
+     	})); 
+    
 }
 
 void collect(current:(Formal) `<Type ty> <Id id>`, Collector c){
@@ -261,7 +278,27 @@ void collectArgs(Type ty, Arguments? current, Collector c){
 				//println(conId);
 				//println(currentScope);
 				ct = s.getTypeInType(t, newConstructorId([Id] "<idStr>"), {consId()}, currentScope);
-				//argTypes = atypeList([ s.getType(a) | aargs <- current, a <- aargs.args]);
+				argTypes = atypeList([ s.getType(a) | aargs <- current, a <- aargs.args]);
+				s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+			}
+		});
+	
+}
+
+void collectArgs2(Id id, Arguments current, Collector c){
+		currentScope = c.getScope();
+		for (a <- current.args){
+			collect(a, c);
+		}
+		c.require("constructor arguments", current, 
+			  [id] + [a | a <- current.args], void (Solver s) {
+			ty = s.getType(id);  
+			if (!funType(_,_,_) := ty)
+				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
+			else{
+				t = ty;
+				// ct = s.getTypeInType(t, newConstructorId([Id] "<id>"), {consId()}, currentScope);
+				//argTypes = atypeList([ s.getType(a) |  a <- current.args]);
 				//s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
 			}
 		});
@@ -349,6 +386,10 @@ void collect(current:(Type)`bool`, Collector c) {
 	c.fact(current, boolType());
 }  
 
+void collect(current:(Type)`typ`, Collector c) {
+	c.fact(current, typeType());
+}  
+
 void collect(current:(Type)`int`, Collector c) {
 	c.fact(current, intType());
 }  
@@ -419,6 +460,29 @@ void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	c.fact(current, intType());
 }
 
+void collect(current: (Expr) `<Id id> <Arguments args>`, Collector c){
+	c.use(id, {funId()});
+	//collectArgs2(id, args, c);
+	c.calculate("function call", current, [id], AType(Solver s){
+		ty = s.getType(id);
+		if (!funType(_, _, _) := ty)
+				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
+		else{
+			funType(_, retType, _) = ty;
+			return retType;
+			//s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+		}
+	});	
+}
+
+void collect(current: (Expr) `<Expr e>.type`, Collector c){
+	collect(e, c);
+	c.require("offset type", current, [e], void (Solver s) {
+		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offsets"));
+	}); 
+	c.fact(current, typeType());
+}
+
 void collect(current: (Expr) `<Expr e>[<Range r>]`, Collector c){
 	collect(e, c);
 	c.require("list expression", current, [e], void(Solver s){
@@ -430,7 +494,7 @@ void collect(current: (Expr) `<Expr e>[<Range r>]`, Collector c){
 void collectRange(Expr access, Expr e, current:(Range) `: <Expr end>`, Collector c){
 	collect(end, c);
 	c.calculate("list access", access, [e, end], AType (Solver s){
-		s.requireEqual(end, intType(), error(end, "Index must be integer"));
+		s.requireSubtype(end, intType(), error(end, "Index must be integer"));
 		return s.getType(e);
 	});
 }
@@ -529,6 +593,7 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
 }
 
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
+tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(funType(str name, _, _)) = <true, name, {funId()}>;
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
 AType danGetTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){

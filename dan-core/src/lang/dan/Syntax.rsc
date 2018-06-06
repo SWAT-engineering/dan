@@ -2,7 +2,7 @@ module lang::dan::Syntax
 
 extend lang::std::Layout;
 
-keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool" | "module" | "import";
+keyword Reserved = "abstract" | "struct" | "choice" | "u8" | "u16" | "u32" | "u64" | "int" | "str" | "bool" | "typ" | "module" | "import";
 
 start syntax Program =
 	"module" Id
@@ -20,6 +20,7 @@ syntax Import
 syntax TopLevelDecl
 	= "struct" Id Formals? Annos? "{" DeclInStruct* declarations "}"
 	| "choice" Id Formals? Annos? "{" DeclInChoice* declarations "}"
+	| Type Id Formals? 
 	;
 	
 syntax Annos 
@@ -57,11 +58,10 @@ syntax DeclInStruct
 	
 	
 syntax Expr 
-	= Id
-	| NatLiteral
+	= NatLiteral
 	| HexIntegerLiteral
 	| StringLiteral
-	| Id Arguments
+	| Id
 	| bracket "(" Expr ")"
 	| Expr "." Id
 	> "-" Expr
@@ -70,6 +70,7 @@ syntax Expr
 	> Expr "*" Expr
 	> Expr "+" Expr
 	| Expr "-" Expr
+	> Id Arguments
 	> Expr "[" Range "]"
 	;
 		
@@ -105,6 +106,7 @@ syntax Type
 	| "int"
 	| "str"
 	| "bool"
+	| "typ"
 	| UInt
 	| AnonStruct
 	| Type "[" "]"
