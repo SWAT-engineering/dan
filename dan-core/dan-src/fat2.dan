@@ -1,6 +1,6 @@
 module fat
 
-choice FORMAT(Type format){
+choice FORMAT(typ format){
 	// TODO the above apparently needs to be parameterized
 	FAT16Format(format)
 	//SinglezZipFormat

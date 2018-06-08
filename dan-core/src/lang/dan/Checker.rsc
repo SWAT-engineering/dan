@@ -80,6 +80,11 @@ AType infixComparator(t1, t2) = boolType()
 	when isConvertible(t1, intType()) && isConvertible(t2, intType());
 default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a comparator"; }
 
+AType infixLogical(t1, t2) = boolType()
+	when isConvertible(t1, boolType()) && isConvertible(t2, boolType());
+default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a logical operation"; }
+
+
 // TODO Maybe more combinations? Also, there is redundancy between the two following definitions.
 AType infixEquality(t1, t2) = boolType()
 	when isConvertible(t1, intType()) && isConvertible(t2, intType());
@@ -540,6 +545,26 @@ void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
 void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> || <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "||", infixLogical, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> && <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "&&", infixLogical, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> ? <Expr e2> : <Expr e3>`, Collector c){
+    collect(e1, e2, e3, c);
+    // TODO relax equality requirement
+	c.calculate("ternary operator", current, [e1, e2, e3], AType(Solver s) {
+		s.requireSubtype(e1, boolType(), error(e1, "Condition must be boolean"));
+		s.requireTrue(s.subtype(e2, e3) || s.subtype(e3, e2), error(e2, "The two branches of the ternary operation must have the same type"));
+		return s.subtype(e2, e3)?s.getType(e3):s.getType(e2);
+	});
 }
 
 void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){

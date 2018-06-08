@@ -13,3 +13,27 @@ struct A{
 	u16[] nextCluster while (it == 0)
 }	
 ]]
+
+test D3 [[
+module m
+    
+struct A(u8 y){
+	int x = (y == 5)?"x":0
+}	
+]] expect { "The two branches of the ternary operation must have the same type" }
+
+test D4 [[
+module m
+    
+struct A(u8 y){
+	int x = 0?"x":0
+}	
+]] expect { "Condition must be boolean" }
+
+test D5 [[
+module m
+    
+struct A(u8 y){
+	int x = (y == 5)?y:0
+}	
+]]

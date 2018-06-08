@@ -65,8 +65,11 @@ syntax Expr
 	| StringLiteral
 	| Id
 	| bracket "(" Expr ")"
+	| Expr "?" Expr ":" Expr
 	| Expr "." Id
 	> "-" Expr
+	> Expr "||" Expr
+	| Expr "&&" Expr
 	> Expr UnaryOperator Expr
 	> Expr "++" Expr
 	> Expr "*" Expr
