@@ -1,0 +1,36 @@
+module ico
+
+import encoding
+import BMP
+import PNG
+
+
+choice BMPorPNG{
+	BMP
+	PNG
+}
+
+struct ICO@(encoding = Endianness.LITTLE_INDIAN){
+	IconDir header
+	IconDirEntry[] imageDirectory[header.numberOfImages]
+	BMPorPNG[] images
+}
+
+struct IconDir{
+	u16 _ ?(== 0)
+	u16 img_type ?((this == 1) || (this == 0))
+	u16 numberOfImages
+}
+
+struct IconDirEntry{
+	u8 widthRep ? (<= 255)
+	int width = (widthRep == 0)? 256 : widthRep
+	u8 heightRep ? (<= 255)
+	int height = (widthRep == 0)? 256 : heightRep
+	u8 colors
+	u8 _ ?(== 0)
+	u16 planes ?(<=1)
+	u16 bitsPerPixel
+	u32 sizeInBytes
+	u32 offset
+}
