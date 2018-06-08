@@ -171,12 +171,6 @@ void collect(current: (Program) `module <Id moduleName> <Import* imports> <TopLe
     c.leaveScope(current);
 }
  
-Tree fixLocation(Tree tr, loc newLoc) =
-	visit(tr) {
-		case Tree t => t[@\loc = relocate(t@\loc,newLoc)]
-        	when t has \loc
-	 }; 
-	 
 Tree newConstructorId(Id id) = [ConsId] "$<id>";
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
@@ -236,6 +230,16 @@ void collectSideCondition(Type ty, current:(SideCondition) `? ( <Expr e>)`, Coll
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireEqual(s.getType(e), boolType(), error(current, "Side condition must be boolean"));
 	});
+}
+
+void collectSideCondition(Type ty, current:(SideCondition) `while ( <Expr e>)`, Collector c){
+	collect(e, c);
+	c.define("it", variableId(), current, defType([ty], AType (Solver s) {
+		s.requireTrue(listType(t) := s.getType(ty), error(current, "while side condition can only guard list types"));
+		listType(t) = s.getType(ty);
+		return t;
+	}));
+	
 }
 
 void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
@@ -607,7 +611,7 @@ private TypePalConfig getDanConfig() = tconfig(
     isSubType = isConvertible,
     getTypeNameAndRole = danGetTypeNameAndRole,
     getTypeInNamelessType = danGetTypeInAnonymousStruct,
-     mayOverload = bool(set[loc] defs, map[loc, Define] defines){
+    mayOverload = bool(set[loc] defs, map[loc, Define] defines){
     	// TODO do it just for the constructors 
     	return true;
     }
@@ -628,3 +632,4 @@ bool testDan(int n, bool debug = false) {
     });
 }
 
+ 

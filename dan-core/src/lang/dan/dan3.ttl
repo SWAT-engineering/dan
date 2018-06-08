@@ -1,13 +1,15 @@
-test D12 [[
-	module m
-	
-    struct Address(str c){
-		int housenumber = 221
-		str city = "put here reference to variable c" 
-	}
-	struct Person{
-		int age = 20
-		str name = "Ignacio"
-		Address address("Amsterdam")
-	}
+test D1 [[
+module m
+    
+struct A{
+	u16 nextCluster while (it == 0)
+}	
+]] expect { "while side condition can only guard list types" }
+
+test D2 [[
+module m
+    
+struct A{
+	u16[] nextCluster while (it == 0)
+}	
 ]]
