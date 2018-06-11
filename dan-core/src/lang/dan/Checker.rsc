@@ -247,7 +247,7 @@ void collectSideCondition(Type ty, current:(SideCondition) `while ( <Expr e>)`, 
 	
 }
 
-void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+void collectSideCondition(Type _, current:(SideCondition) `? ( <ComparatorOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
@@ -376,7 +376,7 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 	}
 }
 
-void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
+void collect(current:(UnaryExpr) `<ComparatorOperator uo> <Expr e>`, Collector c){
 	collect(e, c);
 }
 
@@ -547,6 +547,12 @@ void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
     collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
 }
 
+void collect(current: (Expr) `<Expr e1> != <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
+}
+
+
 void collect(current: (Expr) `<Expr e1> || <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "||", infixLogical, e1, e2, c); 
@@ -567,16 +573,42 @@ void collect(current: (Expr) `<Expr e1> ? <Expr e2> : <Expr e3>`, Collector c){
 	});
 }
 
-void collect(current: (Expr) `<Expr e1> <UnaryOperator u> <Expr e2>`, Collector c){
+void collect(current: (Expr) `<Expr e1> <ComparatorOperator u> <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "<u>", infixComparator, e1, e2, c); 
 }
+
+void collect(current: (Expr) `<Expr e1> & <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "&", infixBitwise, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> ^ <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+}
+
+
+void collect(current: (Expr) `<Expr e1> \>\> <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> \>\>\> <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> \>\>\> <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+}
+
 
 void collect(current: (Expr) `<Expr e1> + <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "+", infixArithmetic, e1, e2, c); 
 }
-
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
     collect(e1, e2, c);

@@ -79,7 +79,9 @@ syntax Expr
 	| Expr "\>\>\>" Expr
 	> Expr "||" Expr
 	| Expr "&&" Expr
-	> Expr UnaryOperator Expr
+	> Expr "==" Expr
+    | Expr "!=" Expr
+	| Expr ComparatorOperator Expr
 	> Expr "++" Expr
 	> Expr "*" Expr
 	> Expr "+" Expr
@@ -88,10 +90,8 @@ syntax Expr
 	> Expr "[" Range "]"
 	;
 		
-syntax UnaryOperator 
-	= "==" 
-	| "!="
-	| "\<="
+syntax ComparatorOperator
+	= "\<="
 	| "\<"
 	| "\>="
 	| "\>"
