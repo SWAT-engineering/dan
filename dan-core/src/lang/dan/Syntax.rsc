@@ -11,9 +11,13 @@ start syntax Program =
 	TopLevelDecl* declarations;
 
 lexical Id 
-	=  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved 
+	=  (([a-z A-Z 0-9 _] - [u]) !<< ([a-z A-Z] - [u])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
 	| @category="Constant" "this" 
-	| @category="Constant" "it";
+	| @category="Constant" "it"
+	// the following two productions make sure Id is not ambigious with UInt production
+	| [u] !>> [a-z A-Z _] // a single u
+	| ([u] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a u not followed by a number
+	;
 
 lexical DId = Id | "_";
 
