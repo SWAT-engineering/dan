@@ -94,12 +94,18 @@ syntax Expr
 	> Expr "[" Range "]"
 	;
 		
-syntax ComparatorOperator
+lexical ComparatorOperator
 	= "\<="
 	| "\<"
 	| "\>="
 	| "\>"
 	;   	
+	
+lexical UnaryOperator
+    = ComparatorOperator
+    | "=="
+    | "!="
+    ;
 	
 syntax UnaryExpr
 	= UnaryOperator Expr e
@@ -143,10 +149,9 @@ lexical StringLiteral
 	= @category="Constant" "\"" StringCharacter* chars "\"" ;	
 	
 lexical StringCharacter
-	= "\\" [\" \' \< \> \\ b f n r t] 
+	= "\\" [\" \\ b f n r t] 
+	| ![\" \\]
 	| UnicodeEscape 
-	| ![\" \' \< \> \\]
-	| [\n][\ \t \u00A0 \u1680 \u2000-\u200A \u202F \u205F \u3000]* [\'] // margin 
 	;
 	
 lexical UnicodeEscape
