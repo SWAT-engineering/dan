@@ -10,7 +10,10 @@ start syntax Program =
 	Import* imports
 	TopLevelDecl* declarations;
 
-lexical Id =  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved | "this" | "it";
+lexical Id 
+	=  ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved 
+	| @category="Constant" "this" 
+	| @category="Constant" "it";
 
 lexical DId = Id | "_";
 
@@ -68,6 +71,12 @@ syntax Expr
 	| Expr "?" Expr ":" Expr
 	| Expr "." Id
 	> "-" Expr
+	| "!" Expr
+	> Expr "&" Expr
+	| Expr "^" Expr
+	| Expr "\>\>" Expr
+	| Expr "\<\<" Expr
+	| Expr "\>\>\>" Expr
 	> Expr "||" Expr
 	| Expr "&&" Expr
 	> Expr UnaryOperator Expr
@@ -117,7 +126,7 @@ syntax Type
 	| Type "[" "]"
 	;
 	
-lexical UInt = "u" [0-9]+ !>> [0-9];
+lexical UInt = @category="Constant" "u" [0-9]+ !>> [0-9];
 	
 lexical NatLiteral
 	=  @category="Constant" [0-9]+ !>> [0-9]
