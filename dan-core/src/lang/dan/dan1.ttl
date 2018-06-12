@@ -188,3 +188,12 @@ test D20 [[
 		u8 foo(3)
 	}	
 ]] expect { "Constructor arguments only apply to user-defined types" }
+
+test D21 [[
+	module m
+	
+    struct Address{
+    	u8 housenumber ?(this > 1)
+    	u16 postalCode ?(this > 1)
+	}
+]]
