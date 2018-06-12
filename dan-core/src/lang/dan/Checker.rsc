@@ -51,6 +51,9 @@ bool isConvertible(uType(_), strType()) = true;
 	
 bool isConvertible(uType(n), uType(m)) = true;
 
+bool isConvertible(listType(t1:uType(_)), t2) = isConvertible(t1, t2)
+	when listType(_) !:= t2;
+
 // TODO do we want covariant lists?
 bool isConvertible(listType(t1), listType(t2)) = isConvertible(t1, t2);
 
@@ -84,15 +87,15 @@ AType infixLogical(t1, t2) = boolType()
 default AType infixLogical(AType t1, AType t2){ throw "Wrong operands for a logical operation"; }
 
 
-AType infixBitwise(uType(n), uType(m)) = n>m?n:m;
-AType infixBitwise(uType(_), intType()) = intType();
-AType infixBitwise(intType(), uType(_)) = intType();
+AType infixBitwise(t1:uType(n), t2:uType(m)) = n>m?t1:t2;
+AType infixBitwise(t1:uType(_), intType()) = t1;
+AType infixBitwise(intType(), t1:uType(_)) = t1;
 AType infixBitwise(intType(), intType()) = intType();
-AType infixBitwise(uType(_), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
-AType infixBitwise(listType(uType(_)), uType(_)){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
-AType infixBitwise(listType(uType(_)), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
-AType infixBitwise(listType(uType(_)),intType()) { throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
-AType infixBitwise(intType(), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+AType infixBitwise(t1:uType(_), listType(uType(_))) = t1;
+AType infixBitwise(listType(uType(_)), t1:uType(_)) = t1;
+AType infixBitwise(t1:listType(uType(n)), t2:listType(uType(m))) = n>m?t1:t2;
+AType infixBitwise(t1:listType(uType(_)),intType()) = t1;
+AType infixBitwise(intType(), t1:listType(uType(_))) = t1;
 
 default AType infixBitwise(AType t1, AType t2){ throw "Wrong operands for a bitwise operation"; }
 
@@ -603,6 +606,11 @@ void collect(current: (Expr) `<Expr e1> ^ <Expr e2>`, Collector c){
     collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
 }
 
+void collect(current: (Expr) `<Expr e1> | <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "|", infixBitwise, e1, e2, c); 
+}
+
 
 void collect(current: (Expr) `<Expr e1> \>\> <Expr e2>`, Collector c){
     collect(e1, e2, c);
@@ -623,6 +631,16 @@ void collect(current: (Expr) `<Expr e1> \<\< <Expr e2>`, Collector c){
 void collect(current: (Expr) `<Expr e1> + <Expr e2>`, Collector c){
     collect(e1, e2, c);
     collectInfixOperation(current, "+", infixArithmetic, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> % <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "%", infixArithmetic, e1, e2, c); 
+}
+
+void collect(current: (Expr) `<Expr e1> / <Expr e2>`, Collector c){
+    collect(e1, e2, c);
+    collectInfixOperation(current, "/", infixArithmetic, e1, e2, c); 
 }
 
 void collect(current: (Expr) `<Expr e1> - <Expr e2>`, Collector c){
@@ -654,11 +672,6 @@ void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, T
 		catch str msg:{
 			s.report(error(current, msg));
 		}
-		catch <AType ty, str msg>:{
-			s.report(warning(current, msg));
-			return ty;
-		}
-		
 	});
 }	
 
@@ -687,11 +700,7 @@ AType danGetTypeInAnonymousStruct(AType containerType, Tree selector, loc scope,
 private TypePalConfig getDanConfig() = tconfig(
     isSubType = isConvertible,
     getTypeNameAndRole = danGetTypeNameAndRole,
-    getTypeInNamelessType = danGetTypeInAnonymousStruct,
-    mayOverload = bool(set[loc] defs, map[loc, Define] defines){
-    	// TODO do it just for the constructors 
-    	return true;
-    }
+    getTypeInNamelessType = danGetTypeInAnonymousStruct
 );
 
 

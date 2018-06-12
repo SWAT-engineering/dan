@@ -37,3 +37,51 @@ struct A(u8 y){
 	int x = (y == 5)?y:0
 }	
 ]]
+
+test D6 [[
+module m
+    
+struct A(){
+	u8 x
+	u8 y = x >> 1
+}	
+]]
+
+test D7 [[
+module m
+    
+struct A(){
+	u8 x
+	u8 y = x >> 1
+}	
+]]
+
+test D8 [[
+module m
+    
+struct A(){
+	u8[] x
+	int y = 3 >> 1
+}	
+]]
+
+test D9 [[
+module m
+    
+struct A(){
+	u8[] x
+	u8[] y
+	int z = x & y
+}	
+]]
+
+test D10 [[
+module m
+    
+struct A(){
+	u8 x
+	u16 y
+	u16 z = x & y
+}	
+]]
+
