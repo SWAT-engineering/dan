@@ -153,14 +153,14 @@ syntax Type
 lexical UInt = @category="Constant" "u" [0-9]+ !>> [0-9];
 	
 lexical NatLiteral
-	=  @category="Constant" [0-9]+ !>> [0-9]
+	=  @category="Constant" [0-9 _]+ !>> [0-9 _]
 	;
 
 lexical HexIntegerLiteral
-	=  [0] [X x] [0-9 A-F a-f]+ !>> [0-9 A-Z _ a-z] ;
+	=  [0] [X x] [0-9 A-F a-f _]+ !>> [0-9 A-F a-f _] ;
 
 lexical BitLiteral 
-	= "0b" [0-1]+ !>> [0-1];
+	= "0b" [0 1 _]+ !>> [0 1 _];
 	
 lexical StringLiteral
 	= @category="Constant" "\"" StringCharacter* chars "\"" ;	
