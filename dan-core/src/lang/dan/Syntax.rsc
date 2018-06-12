@@ -74,6 +74,7 @@ syntax Expr
 	| BitLiteral
 	| StringLiteral
 	| Id
+	| "[" {Expr ","}* "]"
 	| bracket "(" Expr ")"
 	| Id Arguments
 	> Expr "[" Range "]"
