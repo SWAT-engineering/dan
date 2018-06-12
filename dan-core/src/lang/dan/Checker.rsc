@@ -306,7 +306,7 @@ void collectArgs(Type ty, Arguments? current, Collector c){
 				//println(currentScope);
 				ct = s.getTypeInType(t, newConstructorId([Id] "<idStr>"), {consId()}, currentScope);
 				argTypes = atypeList([ s.getType(a) | aargs <- current, a <- aargs.args]);
-				s.requireSubtype(ct.formals, argTypes, error(current, "Wrong type of arguments"));
+				s.requireSubtype(argTypes, ct.formals, error(current, "Wrong type of arguments"));
 			}
 		});
 	
@@ -324,7 +324,7 @@ void collectFunctionArgs(Id id, Arguments current, Collector c){
 			else{
 				funType(_, _, formals) = ty;
 			    argTypes = atypeList([ s.getType(a) |  a <- current.args]);
-				s.requireSubtype(formals, argTypes, error(current, "Wrong type of arguments"));
+				s.requireSubtype(argTypes, formals, error(current, "Wrong type of arguments"));
 			}
 		});
 	
