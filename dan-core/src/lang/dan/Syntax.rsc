@@ -3,7 +3,7 @@ module lang::dan::Syntax
 extend lang::std::Layout;
 
 // TODO can we specify a pattern for u? types
-keyword Reserved = "abstract" | "struct" | "choice"  | "int" | "str" | "bool" | "typ" | "module" | "import" | "u8" | "u16" | "u24" | "u32" | "u64" | "u128" | "while"  | "this" | "it";
+keyword Reserved = "abstract" | "struct" | "choice"  | "int" | "str" | "bool" | "typ" | "module" | "import" | "while"  | "this" | "it";
 
 start syntax Program =
 	"module" Id
@@ -66,32 +66,45 @@ syntax DeclInStruct
 	;
 	
 	
+// precedance and associativity based on Java
+// as described here: https://introcs.cs.princeton.edu/java/11precedence/
 syntax Expr 
 	= NatLiteral
 	| HexIntegerLiteral
 	| StringLiteral
 	| Id
 	| bracket "(" Expr ")"
-	| Expr "?" Expr ":" Expr
+	| Id Arguments
+	> Expr "[" Range "]"
 	| Expr "." Id
 	> "-" Expr
 	| "!" Expr
-	> Expr "&" Expr
-	| Expr "^" Expr
-	| Expr "\>\>" Expr
-	| Expr "\<\<" Expr
-	| Expr "\>\>\>" Expr
-	> Expr "||" Expr
-	| Expr "&&" Expr
-	> Expr "==" Expr
-    | Expr "!=" Expr
-	| Expr ComparatorOperator Expr
-	> Expr "++" Expr
-	> Expr "*" Expr
-	> Expr "+" Expr
-	| Expr "-" Expr
-	> Id Arguments
-	> Expr "[" Range "]"
+	> left (
+	     Expr "*" Expr
+	   | Expr "/" Expr
+	   | Expr "%" Expr
+	)
+	> left (
+	      Expr "+" !>> [+] Expr
+        | Expr "-" Expr
+        | Expr "++" Expr
+	)
+	> left( 
+        | Expr "\>\>" Expr
+        | Expr "\<\<" Expr
+        | Expr "\>\>\>" Expr
+	)
+	> non-assoc Expr ComparatorOperator Expr
+	> left (
+	      Expr "==" Expr
+        | Expr "!=" Expr
+    )
+	> left Expr "&" Expr
+    > left Expr "^" Expr
+    > left Expr "|" Expr
+	> left Expr "&&" Expr
+	> left Expr "||" Expr
+	> right Expr "?" Expr ":" Expr
 	;
 		
 lexical ComparatorOperator
