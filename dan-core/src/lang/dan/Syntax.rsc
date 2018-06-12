@@ -90,7 +90,7 @@ syntax Expr
 		| Expr "++" Expr
 	)
 	> left( 
-		| Expr "\>\>" Expr
+		  Expr "\>\>" Expr
 		| Expr "\<\<" Expr
 		| Expr "\>\>\>" Expr
 	)
