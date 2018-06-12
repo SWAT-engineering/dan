@@ -82,8 +82,24 @@ default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a c
 
 AType infixLogical(t1, t2) = boolType()
 	when isConvertible(t1, boolType()) && isConvertible(t2, boolType());
-default AType infixComparator(AType t1, AType t2){ throw "Wrong operands for a logical operation"; }
+default AType infixLogical(AType t1, AType t2){ throw "Wrong operands for a logical operation"; }
 
+
+AType infixBitwise(uType(n), uType(m)) = n>m?n:m;
+AType infixBitwise(uType(_), intType()) = intType();
+AType infixBitwise(intType(), uType(_)) = intType();
+AType infixBitwise(intType(), intType()) = intType();
+AType infixBitwise(uType(_), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+AType infixBitwise(listType(uType(_)), uType(_)){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+AType infixBitwise(listType(uType(_)), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+AType infixBitwise(listType(uType(_)),intType()) { throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+AType infixBitwise(intType(), listType(uType(_))){ throw <intType(), "By using types of form u?[] the bitwise operation result is taken to an integer. To preserve precision use u? types.">; }
+
+default AType infixBitwise(AType t1, AType t2){ throw "Wrong operands for a bitwise operation"; }
+
+AType infixShift(t1, t2) = t1
+	when isConvertible(t1, intType()) && isConvertible(t2, intType());
+default AType infixShift(AType t1, AType t2){ throw "Wrong operands for a shift operation"; }
 
 // TODO Maybe more combinations? Also, there is redundancy between the two following definitions.
 AType infixEquality(t1, t2) = boolType()
@@ -247,7 +263,7 @@ void collectSideCondition(Type ty, current:(SideCondition) `while ( <Expr e>)`, 
 	
 }
 
-void collectSideCondition(Type _, current:(SideCondition) `? ( <ComparatorOperator uo> <Expr e>)`, Collector c){
+void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
@@ -549,7 +565,7 @@ void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
 
 void collect(current: (Expr) `<Expr e1> != <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
+    collectInfixOperation(current, "!=", infixEquality, e1, e2, c); 
 }
 
 
@@ -591,17 +607,17 @@ void collect(current: (Expr) `<Expr e1> ^ <Expr e2>`, Collector c){
 
 void collect(current: (Expr) `<Expr e1> \>\> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+    collectInfixOperation(current, "\>\>", infixShift, e1, e2, c); 
 }
 
 void collect(current: (Expr) `<Expr e1> \>\>\> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+    collectInfixOperation(current, "\>\>\>", infixShift, e1, e2, c); 
 }
 
-void collect(current: (Expr) `<Expr e1> \>\>\> <Expr e2>`, Collector c){
+void collect(current: (Expr) `<Expr e1> \<\< <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    collectInfixOperation(current, "^", infixBitwise, e1, e2, c); 
+    collectInfixOperation(current, "\<\<", infixShift, e1, e2, c); 
 }
 
 
@@ -633,10 +649,15 @@ void collect(current: (Expr) `(<Expr e>)`, Collector c){
 
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
 	c.calculate("<op>",current, [lhs, rhs], AType(Solver s) {
-		try
+		try{
 			return infixFun(s.getType(lhs), s.getType(rhs));
+		}	
 		catch str msg:{
 			s.report(error(current, msg));
+		}
+		catch <AType ty, str msg>:{
+			s.report(warning(current, msg));
+			return ty;
 		}
 		
 	});
