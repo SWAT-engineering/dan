@@ -85,3 +85,11 @@ struct A(){
 }	
 ]]
 
+
+test D11[[
+module m
+
+struct A{
+	int x = 23 + 0b010101
+}
+]]

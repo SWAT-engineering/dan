@@ -469,6 +469,10 @@ void collect(current: (Expr) `<HexIntegerLiteral nat>`, Collector c){
     c.fact(current, intType());
 }
 
+void collect(current: (Expr) `<BitLiteral nat>`, Collector c){
+    c.fact(current, intType());
+}
+
 void collect(current: (Expr) `<NatLiteral nat>`, Collector c){
     c.fact(current, intType());
 }

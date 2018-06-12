@@ -71,6 +71,7 @@ syntax DeclInStruct
 syntax Expr 
 	= NatLiteral
 	| HexIntegerLiteral
+	| BitLiteral
 	| StringLiteral
 	| Id
 	| bracket "(" Expr ")"
@@ -157,6 +158,9 @@ lexical NatLiteral
 
 lexical HexIntegerLiteral
 	=  [0] [X x] [0-9 A-F a-f]+ !>> [0-9 A-Z _ a-z] ;
+
+lexical BitLiteral 
+	= "0b" [0-1]+ !>> [0-1];
 	
 lexical StringLiteral
 	= @category="Constant" "\"" StringCharacter* chars "\"" ;	
