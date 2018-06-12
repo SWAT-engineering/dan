@@ -80,28 +80,28 @@ syntax Expr
 	> "-" Expr
 	| "!" Expr
 	> left (
-	     Expr "*" Expr
-	   | Expr "/" Expr
-	   | Expr "%" Expr
+		  Expr "*" Expr
+		| Expr "/" Expr
+		| Expr "%" Expr
 	)
 	> left (
-	      Expr "+" !>> [+] Expr
-        | Expr "-" Expr
-        | Expr "++" Expr
+		  Expr "+" !>> [+] Expr
+		| Expr "-" Expr
+		| Expr "++" Expr
 	)
 	> left( 
-        | Expr "\>\>" Expr
-        | Expr "\<\<" Expr
-        | Expr "\>\>\>" Expr
+		| Expr "\>\>" Expr
+		| Expr "\<\<" Expr
+		| Expr "\>\>\>" Expr
 	)
 	> non-assoc Expr ComparatorOperator Expr
 	> left (
-	      Expr "==" Expr
-        | Expr "!=" Expr
-    )
+		  Expr "==" Expr
+		| Expr "!=" Expr
+	)
 	> left Expr "&" Expr
-    > left Expr "^" Expr
-    > left Expr "|" Expr
+	> left Expr "^" Expr
+	> left Expr "|" Expr
 	> left Expr "&&" Expr
 	> left Expr "||" Expr
 	> right Expr "?" Expr ":" Expr
@@ -115,10 +115,10 @@ lexical ComparatorOperator
 	;   	
 	
 lexical UnaryOperator
-    = ComparatorOperator
-    | "=="
-    | "!="
-    ;
+	= ComparatorOperator
+	| "=="
+	| "!="
+	;
 	
 syntax UnaryExpr
 	= UnaryOperator Expr e
@@ -169,8 +169,8 @@ lexical StringCharacter
 	
 lexical UnicodeEscape
 	= utf16: "\\" [u] [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] 
-    | utf32: "\\" [U] (("0" [0-9 A-F a-f]) | "10") [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] // 24 bits 
-    | ascii: "\\" [a] [0-7] [0-9A-Fa-f]
-    ;
+	| utf32: "\\" [U] (("0" [0-9 A-F a-f]) | "10") [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] [0-9 A-F a-f] // 24 bits 
+	| ascii: "\\" [a] [0-7] [0-9A-Fa-f]
+	;
 
 
