@@ -67,7 +67,7 @@ str prettyPrintAType(boolType()) = "bool";
 str prettyPrintAType(listType(t)) = "<prettyPrintAType(t)>[]";
 str prettyPrintAType(refType(name)) = name;
 str prettyPrintAType(anonType(_)) = "anonymous";
-str prettyPrintAType(uType(n)) = "uType<n>";
+str prettyPrintAType(uType(n)) = "u<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 str prettyPrintAType(funType(name,_,_)) = "fun <name>";
 
@@ -97,7 +97,7 @@ AType infixBitwise(t1:listType(uType(n)), t2:listType(uType(m))) = n>m?t1:t2;
 AType infixBitwise(t1:listType(uType(_)),intType()) = t1;
 AType infixBitwise(intType(), t1:listType(uType(_))) = t1;
 
-default AType infixBitwise(AType t1, AType t2){ throw "Wrong operands for a bitwise operation"; }
+default AType infixBitwise(AType t1, AType t2){ throw "Wrong operands for a bitwise operation: "+ prettyPrintAType(t1) +", " + prettyPrintAType(t2); }
 
 AType infixShift(t1, t2) = t1
 	when isConvertible(t1, intType()) && isConvertible(t2, intType());
@@ -243,29 +243,33 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 		collectSize(ty, sz, c);
 	}
 	for (sc <- cond){
-		collectSideCondition(ty, sc, c);
+		collectSideCondition(ty, id, sc, c);
 	}
 }
 
-void collectSideCondition(Type ty, current:(SideCondition) `? ( <Expr e>)`, Collector c){
+void collectSideCondition(Type ty, DId id, current:(SideCondition) `? ( <Expr e>)`, Collector c){
+	c.enterScope(current);
+	c.define("this", variableId(), id, defType(ty));
 	collect(e, c);
-	c.define("this", variableId(), current, defType(ty));
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireEqual(s.getType(e), boolType(), error(current, "Side condition must be boolean"));
 	});
+	c.leaveScope(current);
 }
 
-void collectSideCondition(Type ty, current:(SideCondition) `while ( <Expr e>)`, Collector c){
+void collectSideCondition(Type ty, DId id, current:(SideCondition) `while ( <Expr e>)`, Collector c){
 	collect(e, c);
-	c.define("it", variableId(), current, defType([ty], AType (Solver s) {
+	c.enterScope(current);
+	c.define("it", variableId(), id, defType([ty], AType (Solver s) {
 		s.requireTrue(listType(t) := s.getType(ty), error(current, "while side condition can only guard list types"));
 		listType(t) = s.getType(ty);
 		return t;
 	}));
+	c.leaveScope(current);
 	
 }
 
-void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+void collectSideCondition(Type _, DId id, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
