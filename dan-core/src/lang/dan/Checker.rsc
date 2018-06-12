@@ -7,7 +7,6 @@ import Set;
 import String;
 
 extend analysis::typepal::TypePal;
-extend analysis::typepal::TypePalConfig;
 
 lexical ConsId =  "$" ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
