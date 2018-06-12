@@ -549,6 +549,7 @@ void collectRange(Expr access, Expr e, current: (Range) `<Expr idx>`, Collector 
 	collect(idx, c);
 	c.calculate("list access", access, [e, idx], AType (Solver s){
 		s.requireEqual(idx, intType(), error(idx, "Indexes must be integers"));
+		s.requireTrue(listType(ty) := s.getType(e), error(e, "Expression is not of type list"));
 		listType(ty) = s.getType(e);
 		return ty;
 	});	

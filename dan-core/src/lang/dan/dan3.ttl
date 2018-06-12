@@ -112,4 +112,4 @@ struct A {
     u8 z = x[0]
 }
 ]]
-expects { "x is not of type list" }
+expect { "Expression is not of type list" }
