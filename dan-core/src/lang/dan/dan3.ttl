@@ -93,3 +93,23 @@ struct A{
 	int x = 23 + 0b010101
 }
 ]]
+
+test A1 [[
+module m
+
+struct A {
+    u8[] x
+    u8 z = x[0]
+}
+]]
+
+
+test A2 [[
+module m
+
+struct A {
+    u8 x
+    u8 z = x[0]
+}
+]]
+expects { "x is not of type list" }
