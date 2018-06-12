@@ -10,7 +10,7 @@ choice BMPorPNG{
 	PNG
 }
 
-struct ICO@(encoding = Endianness.LITTLE_INDIAN){
+struct ICO@(endian = Endianness.LITTLE_INDIAN){
 	IconDir header
 	IconDirEntry[] imageDirectory[header.numberOfImages]
 	BMPorPNG[] images
