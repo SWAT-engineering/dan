@@ -258,13 +258,13 @@ void collectSideCondition(Type ty, DId id, current:(SideCondition) `? ( <Expr e>
 }
 
 void collectSideCondition(Type ty, DId id, current:(SideCondition) `while ( <Expr e>)`, Collector c){
-	collect(e, c);
 	c.enterScope(current);
 	c.define("it", variableId(), id, defType([ty], AType (Solver s) {
 		s.requireTrue(listType(t) := s.getType(ty), error(current, "while side condition can only guard list types"));
 		listType(t) = s.getType(ty);
 		return t;
 	}));
+	collect(e, c);
 	c.leaveScope(current);
 	
 }
