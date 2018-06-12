@@ -247,7 +247,7 @@ void collectSideCondition(Type ty, current:(SideCondition) `while ( <Expr e>)`, 
 	
 }
 
-void collectSideCondition(Type _, current:(SideCondition) `? ( <ComparatorOperator uo> <Expr e>)`, Collector c){
+void collectSideCondition(Type _, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
