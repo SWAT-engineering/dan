@@ -10,10 +10,10 @@ choice BMPorPNG{
 	PNG
 }
 
-struct ICO@(endian = Endianness.LITTLE_INDIAN){
+struct ICO@(endian = Endianness.LITTLE){
 	IconDir header
 	IconDirEntry[] imageDirectory[header.numberOfImages]
-	BMPorPNG[] images
+	BMPorPNG[] images[header.numberOfImages]
 }
 
 struct IconDir{
