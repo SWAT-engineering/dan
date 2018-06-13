@@ -1,5 +1,41 @@
 module BMP
 
-struct BMP{
+import encoding
 
+struct BMP@(endian = Endianness.LITTLE){
+	BitmapFileHeader header
+	DIBHeader dibHeader
+	PixelArray pixels(dibHeader.rawSize)
+}
+
+struct BitmapFileHeader{
+	u16 header ?(== "BM")
+	u32 bmpSize
+	u16 _
+	u16 _
+	u32 imgOffset
+}
+
+choice DIBHeader{
+	abstract int rawSize
+	BitmapInfoHeader 
+}
+
+struct BitmapInfoHeader{
+	u32 infoSize
+	s32 width
+	s32 height 
+	u16 colorPlanes
+	u16 bitsPerPixel
+	u32 compressionMethod
+	u32 imgSize
+	s32 horizontalRes
+	s32 verticalRes
+	u32 colors
+	u32 importantColors
+	int rawSize = imgSize
+}
+
+struct PixelArray(int theSize){
+	u32[] pixels[theSize]
 }
