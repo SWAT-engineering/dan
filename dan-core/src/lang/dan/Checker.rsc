@@ -22,6 +22,7 @@ data AType
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
 	| uType(int n)
+	| sType(int n)
 	| moduleType()
 	;
 	
@@ -70,6 +71,7 @@ str prettyPrintAType(listType(t)) = "<prettyPrintAType(t)>[]";
 str prettyPrintAType(refType(name)) = name;
 str prettyPrintAType(anonType(_)) = "anonymous";
 str prettyPrintAType(uType(n)) = "u<n>";
+str prettyPrintAType(sType(n)) = "s<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 str prettyPrintAType(funType(name,_,_)) = "fun <name>";
 
@@ -86,6 +88,7 @@ AType lub(t1:listType(ta),t2:listType(tb)) = listType(lub(ta,tb));
 default AType lub(AType t1, AType t2){ throw "Cannot find a lub for types <prettyPrintAType(t1)> and <prettyPrintAType(t2)>"; }
 
 bool isTokenType(uType(_)) = true;
+bool isTokenType(sType(_)) = true;
 bool isTokenType(refType(_)) = true;
 bool isTokenType(anonType(_)) = true;
 bool isTokenType(listType(t)) = isTokenType(t);
@@ -424,6 +427,10 @@ void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 
 void collect(current:(Type)`<UInt v>`, Collector c) {
 	c.fact(current, uType(toInt("<v>"[1..])));
+}
+
+void collect(current:(Type)`<SInt v>`, Collector c) {
+	c.fact(current, sType(toInt("<v>"[1..])));
 }
 
 void collect(current:(Type)`str`, Collector c) {

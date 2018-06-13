@@ -11,12 +11,14 @@ start syntax Program =
 	TopLevelDecl* declarations;
 
 lexical Id 
-	=  (([a-z A-Z 0-9 _] - [u]) !<< ([a-z A-Z] - [u])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
+	=  (([a-z A-Z 0-9 _] - [u] -[s]) !<< ([a-z A-Z] - [u] - [s])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
 	| @category="Constant" "this" 
 	| @category="Constant" "it"
-	// the following two productions make sure Id is not ambigious with UInt production
+	// the following two productions make sure Id is not ambigious with UInt or SInt productions
 	| [u] !>> [a-z A-Z _] // a single u
+	| [s] !>> [a-z A-Z _] // a single s
 	| ([u] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a u not followed by a number
+	| ([s] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a s not followed by a number
 	;
 
 lexical DId = Id | "_";
@@ -147,11 +149,14 @@ syntax Type
 	| "bool"
 	| "typ"
 	| UInt
+	| SInt
 	| AnonStruct
 	| Type "[" "]"
 	;
 	
 lexical UInt = @category="Constant" "u" [0-9]+ !>> [0-9];
+
+lexical SInt = @category="Constant" "s" [0-9]+ !>> [0-9];
 	
 lexical NatLiteral
 	=  @category="Constant" [0-9 _]+ !>> [0-9 _]
