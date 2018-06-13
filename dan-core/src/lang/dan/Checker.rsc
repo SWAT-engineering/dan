@@ -11,7 +11,8 @@ extend analysis::typepal::TypePal;
 lexical ConsId =  "$" ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
 data AType
-	= intType()
+	= voidType()
+	| intType()
 	| strType()
 	| boolType()
 	| typeType()
@@ -61,6 +62,7 @@ bool isConvertible(AType t1, AType t2) = true
 	when t1 == t2;
 default bool isConvertible(AType _, AType _) = false;
 
+str prettyPrintAType(voidType()) = "void";
 str prettyPrintAType(intType()) = "int";
 str prettyPrintAType(strType()) = "str";
 str prettyPrintAType(boolType()) = "bool";
@@ -70,6 +72,18 @@ str prettyPrintAType(anonType(_)) = "anonymous";
 str prettyPrintAType(uType(n)) = "u<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
 str prettyPrintAType(funType(name,_,_)) = "fun <name>";
+
+AType lub(AType t1, voidType()) = t1;
+AType lub(voidType(), AType t1) = t1;
+AType lub(AType t1, AType t2) = t1
+	when t1 == t2;
+AType lub(t1:uType(n), t2:uType(m)) = n>m?t1:t2;
+AType lub(t1:uType(_), intType()) = intType();
+AType lub(intType(), t1:uType(_)) = intType();
+AType lub(t1:uType(_), strType()) = strType();
+AType lub(strType(), t1:uType(_)) = strType();
+AType lub(t1:listType(ta),t2:listType(tb)) = listType(lub(ta,tb));
+default AType lub(AType t1, AType t2){ throw "Cannot find a lub for types <prettyPrintAType(t1)> and <prettyPrintAType(t2)>"; }
 
 bool isTokenType(uType(_)) = true;
 bool isTokenType(refType(_)) = true;
@@ -269,11 +283,16 @@ void collectSideCondition(Type ty, DId id, current:(SideCondition) `while ( <Exp
 	
 }
 
-void collectSideCondition(Type _, DId id, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+void collectSideCondition(Type _, DId id, current:(SideCondition) `? ( <ComparatorOperator uo> <Expr e>)`, Collector c){
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
-		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary side condition must have numeric type"));
+		s.requireSubtype(s.getType(e), intType(), error(current, "Expression in unary comparing side condition must have numeric type"));
 	});
+	//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
+}
+
+default void collectSideCondition(Type _, DId id, current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, Collector c){
+	collect(e, c);
 	//c.requireEqual(ty, e, error(sc, "Unary expression in side condition must have the same type as declaration"));
 }
 
@@ -398,7 +417,7 @@ void collect(current:(DeclInChoice) `<Type ty> <Arguments? args> <Size? size>`, 
 	}
 }
 
-void collect(current:(UnaryExpr) `<ComparatorOperator uo> <Expr e>`, Collector c){
+void collect(current:(UnaryExpr) `<UnaryOperator uo> <Expr e>`, Collector c){
 	collect(e, c);
 }
 
@@ -464,6 +483,15 @@ void collect(current:(Type)`<Type t> [ ]`, Collector c) {
 	collect(t, c);
 	c.calculate("list type", current, [t], AType(Solver s) { return listType(s.getType(t)); });
 }  
+
+void collect(current: (Expr) `[<{Expr ","}*  exprs>]`, Collector c){
+    collect([e | e <-exprs], c);
+    c.calculate("list type", current, [e | e <-exprs], AType(Solver s) { 
+    	return (listType(voidType()) | lub(it, listType(x)) | x <- [s.getType(e) | e <- exprs ]);
+     });
+}
+
+
 
 void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
     c.fact(current, strType());
