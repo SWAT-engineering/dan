@@ -1,5 +1,7 @@
 module PNG
 
+import crc
+
 struct PNG@(encoding = ASCII, endian = big) {
     Signature _
     Chunk[] chunks
