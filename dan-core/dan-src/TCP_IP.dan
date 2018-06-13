@@ -44,7 +44,7 @@ struct TCPHeader {
     u8 dataOffsetAndReserved ?((this & 0b1110) == 0)
     int optionSize = ((dataOffsetAndReserved >>> 4) - 5) * 4
 
-    u8 flags ?( (this & 0b1_0010 == 0b1_0000) || (this & 0b1_0010 == 0b10)) // either syn or ack is set, but not both
+    u8 flags ?( ((this & 0b1_0010) == 0b1_0000) || ((this & 0b1_0010) == 0b10)) // either syn or ack is set, but not both
     bool syn = (flags & 0b10) != 0
     bool ack = (flags & 0b1_0000) != 0
     bool fin = (flags & 0b1) != 0
