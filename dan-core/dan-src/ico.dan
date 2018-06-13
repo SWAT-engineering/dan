@@ -4,9 +4,13 @@ import encoding
 import BMP
 import PNG
 
+struct BMPnoHeader@(endian = Endianness.BIG_ENDIAN){
+	DIBHeader dibHeader
+	PixelArray pixels(dibHeader.rawSize)
+}
 
 choice BMPorPNG{
-	BMP
+	BMPnoHeader
 	PNG
 }
 
