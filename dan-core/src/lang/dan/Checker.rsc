@@ -44,6 +44,8 @@ data PathRole
 //	when t1 == t2;
 //default bool danIsSubType(AType _, AType _) = false;
 
+bool isConvertible(voidType(), AType t) = true;
+
 bool isConvertible(atypeList(vs), atypeList(ws))
 	= (true | isConvertible(v, w) && it | <v,w> <- zip(vs, ws));
 
