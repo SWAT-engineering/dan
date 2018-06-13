@@ -4,7 +4,7 @@ import encoding
 import BMP
 import PNG
 
-struct BMPnoHeader@(endian = Endianness.BIG_ENDIAN){
+struct BMPnoHeader{
 	DIBHeader dibHeader
 	PixelArray pixels(dibHeader.rawSize)
 }
