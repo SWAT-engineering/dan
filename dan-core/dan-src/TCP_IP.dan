@@ -2,7 +2,7 @@ module TCP_IP
 
 struct IPPacket@(endianness = big) {
    IPHeader head
-   IPData data(head.size, head.protocol)
+   IPData data(head.totalSize, head.protocol)
 }
 
 struct IPHeader {
@@ -10,7 +10,7 @@ struct IPHeader {
     int headerLength = (versionAndLength & 0b1111) * 4
     u8 _
     u16 totalPacketLength 
-    int size = totalPacketLength - headerLength
+    int totalSize = totalPacketLength - headerLength
     u16 identification
     u16 fragmentFlagsAndOffset ?(this >>> 15 == 0)
     u8 ttl
