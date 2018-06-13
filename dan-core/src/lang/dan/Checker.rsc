@@ -487,10 +487,41 @@ void collect(current: (Expr) `<Id id>`, Collector c){
 
 void collect(current: (Expr) `<Expr e>.offset`, Collector c){
 	collect(e, c);
-	c.require("offset type", current, [e], void (Solver s) {
+	c.require("offset", current, [e], void (Solver s) {
 		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offsets"));
 	}); 
 	c.fact(current, intType());
+}
+
+void collect(current: (Expr) `<Expr e>.length`, Collector c){
+	collect(e, c);
+	c.require("length", current, [e], void (Solver s) {
+		s.requireTrue(listType(_) := s.getType(e), error(current, "Only list types have length"));
+	}); 
+	c.fact(current, intType());
+}
+
+void collect(current: (Expr) `<Expr e>.type`, Collector c){
+	collect(e, c);
+	c.fact(current, typeType());
+}
+
+void collect(current: (Expr) `<Expr e>.size`, Collector c){
+	collect(e, c);
+	c.require("size", current, [e], void (Solver s) {
+		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have size"));
+	}); 
+	c.fact(current, intType());
+}
+
+void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
+	collect(e, c);
+	//currentScope = c.getScope();
+	c.useViaType(e, field, {fieldId()});
+	c.fact(current, field);
+	//c.calculate("field type", current, [e], AType(Solver s) {
+	//	return s.getTypeInType(s.getType(e), field, {fieldId()}, currentScope); });
+
 }
 
 void collect(current: (Expr) `<Id id> <Arguments args>`, Collector c){
@@ -508,13 +539,6 @@ void collect(current: (Expr) `<Id id> <Arguments args>`, Collector c){
 	});	
 }
 
-void collect(current: (Expr) `<Expr e>.type`, Collector c){
-	collect(e, c);
-	c.require("offset type", current, [e], void (Solver s) {
-		s.requireTrue(isTokenType(s.getType(e)), error(current, "Only token types have offsets"));
-	}); 
-	c.fact(current, typeType());
-}
 
 void collect(current: (Expr) `<Expr e>[<Range r>]`, Collector c){
 	collect(e, c);
@@ -557,16 +581,6 @@ void collectRange(Expr access, Expr e, current: (Range) `<Expr idx>`, Collector 
 		listType(ty) = s.getType(e);
 		return ty;
 	});	
-}
-
-void collect(current: (Expr) `<Expr e>.<Id field>`, Collector c){
-	collect(e, c);
-	//currentScope = c.getScope();
-	c.useViaType(e, field, {fieldId()});
-	c.fact(current, field);
-	//c.calculate("field type", current, [e], AType(Solver s) {
-	//	return s.getTypeInType(s.getType(e), field, {fieldId()}, currentScope); });
-
 }
 
 void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
