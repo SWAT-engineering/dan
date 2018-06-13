@@ -213,7 +213,7 @@ struct DirectoryEntry{
 test D19[[
 module m
     
-struct FORMAT_ZIP@(encoding = LittleIndian){
+struct FORMAT_ZIP@(endian = Endianness.LITTLE){
 	struct{
 	} _	
 }

@@ -1,6 +1,6 @@
 module encoding
 
 struct Endianness{
-	int LITTLE_ENDIAN = 0
-	int BIG_ENDIAN = 1
+	int LITTLE = 0
+	int BIG = 1
 }

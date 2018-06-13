@@ -4,7 +4,7 @@ choice FORMAT{
 	PngFormat
 }
 
-struct FORMAT_ZIP@(encoding = LittleIndian){
+struct FORMAT_ZIP@(endian = Endianness.LITTLE){
 	struct{
 		LocalDeflatedFile ldf
 		PNG png = parse
@@ -13,7 +13,7 @@ struct FORMAT_ZIP@(encoding = LittleIndian){
 	EndOfDir _		
 }
 
-struct FAT16Format(Type format)@(encoding = LittleIndian){
+struct FAT16Format(Type format)@(endian = Endianness.LITTLE){
 	Reserved Reserved
   	BPB20 block = reserved.boot.block2_0 // types of derived things can be inferred
   	FAT[] fatArea(block)[block.fatCount]
