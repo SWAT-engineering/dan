@@ -2,7 +2,7 @@ module PNG
 
 import crc
 
-struct PNG@(encoding = Encoding.ASCII, endian = big) {
+struct PNG@(encoding = Encoding.ASCII, endian = Endianness.BIG) {
     Signature _
     Chunk[] chunks
     IEND _

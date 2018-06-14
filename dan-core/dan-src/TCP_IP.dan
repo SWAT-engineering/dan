@@ -1,6 +1,6 @@
 module TCP_IP
 
-struct IPPacket@(endianness = big) {
+struct IPPacket@(endianness = Endianness.BIG) {
    IPHeader head
    IPData data(head.totalSize, head.protocol)
 }
