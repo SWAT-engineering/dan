@@ -1,0 +1,6 @@
+module simple
+
+struct Address{
+	u8 houseNumber
+	u16 postCode
+}
