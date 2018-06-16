@@ -11,14 +11,12 @@ start syntax Program =
 	TopLevelDecl* declarations;
 
 lexical Id 
-	=  (([a-z A-Z 0-9 _] - [u] -[s]) !<< ([a-z A-Z] - [u] - [s])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
+	=  (([a-z A-Z 0-9 _] - [u s]) !<< ([a-z A-Z] - [u s])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
 	| @category="Constant" "this" 
 	| @category="Constant" "it"
 	// the following two productions make sure Id is not ambigious with UInt or SInt productions
-	| [u] !>> [a-z A-Z _] // a single u
-	| [s] !>> [a-z A-Z _] // a single s
-	| ([u] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a u not followed by a number
-	| ([s] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a s not followed by a number
+	| [u s] !>> [a-z A-Z _] // a single u or a sigle s
+	| ([u s] [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved // or a u or an s not followed by a number
 	;
 
 lexical DId = Id | "_";
@@ -125,12 +123,14 @@ lexical UnaryOperator
 	;
 	
 syntax UnaryExpr
-	= UnaryOperator Expr e
+	= UnaryOperator op Expr e
 	;  
 	
 syntax Range 
-	 = ":" Expr
-	 | Expr (":" Expr?)?
+	 = Expr
+	 | ":" Expr
+	 | Expr ":"
+	 | Expr ":" Expr
 	 ;
 	
 syntax DeclInChoice
@@ -173,7 +173,7 @@ lexical StringLiteral
 	
 lexical StringCharacter
 	= "\\" [\" \\ b f n r t] 
-	| ![\" \\]
+	| ![\" \\]+ >> [\" \\]
 	| UnicodeEscape 
 	;
 	
