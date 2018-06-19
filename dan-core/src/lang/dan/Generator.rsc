@@ -7,27 +7,116 @@ import List;
 
 extend analysis::typepal::TypePal;
 
-str makeSafeId(str id) = id;
+str makeSafeId(str id, loc lo) =
+	"<newId>_<lo.offset>_<lo.length>_<lo.begin.line>_<lo.end.line>_<lo.begin.column>_<lo.end.column>"
+	when newId := (("<id>"=="_")?"dummy":"<id>");
 
-str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLevelDecl* decls>`)
-	= "class <safeId> {
-	  '\t<intercalate("\n\t", [compile(d) | d <-decls])>
+str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLevelDecl* decls>`, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "import io.parsingdata.metal.expression.value.ValueExpression;
+	  'import io.parsingdata.metal.token.Token;
+	  '
+	  'import static io.parsingdata.metal.Shorthand.EMPTY;
+	  'import static io.parsingdata.metal.Shorthand.con;
+	  'import static io.parsingdata.metal.Shorthand.seq;
+	  'import static io.parsingdata.metal.Shorthand.eq;
+	  'import static io.parsingdata.metal.Shorthand.gtEqNum;
+	  'import static io.parsingdata.metal.Shorthand.ref;
+	  'import static io.parsingdata.metal.Shorthand.rep;
+	  'import static io.parsingdata.metal.Shorthand.repn;
+	  'import static io.parsingdata.metal.Shorthand.def;
+	  ' 
+	  'class <safeId> {
+	  '\t<intercalate("\n", [compile(d, useDefs, types) | d <-decls])>
 	  '}"
-	when safeId := makeSafeId("<moduleName>");
+	when safeId := makeSafeId("<moduleName>", current@\loc);
  
 
  
-str compile(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`) =
-   "private static final <safeId> = seq(<intercalate(", ", ["\"<safeId>\""] + [compile(d) | d <-decls])>)"           	
-	when safeId := makeSafeId("<id>");
-	        	
-str compile(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`) =
-	"def(\"<safeId>\", <compile(ty)>"
-	when safeId := makeSafeId("<id>");       
+str compile(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`, rel[loc,loc] useDefs, map[loc, AType] types) =
+   "private static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"           	
+	when safeId := makeSafeId("<id>", current@\loc),
+		 areThereFormals := (fls <- formals),
+		 startBlock := (areThereFormals?"{ return ":"="),
+		 endBlock := (areThereFormals?"}":""),
+		 compiledFormals := {if (fs  <- formals) compile(fs, useDefs, types); else "";},
+		 declsNumber := (0| it +1 | d <-decls),
+		 compiledDecls := ((declsNumber == 0)?"EMPTY":
+		 	((declsNumber ==  1)? (([compile(d,useDefs,types) | d <-decls])[0]) : "seq(<intercalate(", ", ["\"<safeId>\""] + [compile(d, useDefs, types) | d <-decls])>)"))
+		 ;
+
+
+
+str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types) =
+	"rep(\"<safeId>\", <compile(ty, useDefs, types)>)"
+	when safeId := makeSafeId("<id>", current@\loc);
 	
-str compile(current:(Type)`<UInt v>`) =
+str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Expr n>] <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types) =
+	"repn(\"<safeId>\", <compile(ty, useDefs, types)>,  <compile(n, useDefs, types)>)"
+	when safeId := makeSafeId("<id>", current@\loc);
+
+str compile(Formals current, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "(<intercalate(", ", actualFormals)>)"
+	when actualFormals := [compile(af, useDefs, types) | af <- current.formals];
+	
+str compile(current:(Formal) `<Type ty> <Id id>`, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "ValueExpression <safeId>"
+	when safeId := makeSafeId("<id>", current@\loc);
+	        	
+str compile(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types) =
+	"def(\"<safeId>\", <compile(ty, useDefs, types)><compileArgs><compiledCond>)"
+	when safeId := makeSafeId("<id>", current@\loc),
+		 compileArgs := ("" | it + compile(aargs, useDefs, types) | aargs <- args),
+		 compiledCond := ("" | it + ", <compile(c, useDefs, types)>" | c <- cond);   
+		 
+str compile((Arguments)  `( <{Expr ","}* args>  )`, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "(<intercalate(", ", actualArgs)>)"
+	when actualArgs := [compile(arg, useDefs, types) | arg <- args];	 
+	
+str compile(current:(Type)`<UInt v>`, rel[loc,loc] useDefs, map[loc, AType] types) =
 	"con(<toInt("<v>"[1..])/4>)";
-	  	
+
+str compile(current:(Type)`<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types) =
+	makeSafeId("<id>", lo)
+	when lo := ([l | l <- useDefs[id@\loc]])[0], bprintln("lox: <lo>");
+	
+
+str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types){
+	
+}
+
+str compile(current:(SideCondition) `while ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types){
+	
+}
+
+str compile(current:(SideCondition) `? ( <ComparatorOperator uo> <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "<compile(uo, useDefs, types)>(<compile(e, useDefs, types)>)";
+
+default str compile(current:(SideCondition) `? ( <UnaryOperator uo> <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types)
+	= "<compile(uo, useDefs, types)>(<compile(e, useDefs, types)>)";
+
+str compile(current:(ComparatorOperator) `\>=`, rel[loc,loc] useDefs, map[loc, AType] types) = "gtEqNum";
+
+str compile(current:(UnaryOperator) `==`, rel[loc,loc] useDefs, map[loc, AType] types) = "eq";
+
+str compile(current: (Expr) `<StringLiteral lit>`, rel[loc,loc] useDefs, map[loc, AType] types) = "con(<lit>)";
+
+str compile(current: (Expr) `<HexIntegerLiteral nat>`, rel[loc,loc] useDefs, map[loc, AType] types) = "";
+
+str compile(current: (Expr) `<BitLiteral nat>`, rel[loc,loc] useDefs, map[loc, AType] types) = "";
+
+str compile(current: (Expr) `<NatLiteral nat>`, rel[loc,loc] useDefs, map[loc, AType] types) = "con(<nat>)";
+
+str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types) = "ref(\"<makeSafeId("<id>", lo)>\")" 
+	when lo := ([l | l <- useDefs[id@\loc]])[0],
+		 bprintln("loco: <lo>");
+	  
+str type2Java(AType t) = "ValueExpression"
+	when isTokenType(t);	  
+str type2Java(intType()) = "int";
+str type2Java(strType()) = "String";
+str type2Java(boolType()) = "boolean";
+str type2Java(listType(t)) = "List\<<type2Java(t)>\>"
+	when !isTokenType(t);	  
             	
 /*            	
 void collect(current:(TopLevelDecl) `<Type t> <Id id> <Formals? formals>`,  Collector c) {
@@ -557,5 +646,8 @@ public start[Program] sampleDan(str name) = parse(#start[Program], |project://da
 
 str compileDan(str name) {
     start[Program] pt = sampleDan(name);
-    return compile(pt.top);
+    TModel model = danTModelFromTree(pt);
+    map[loc, AType] types = getFacts(model);
+    rel[loc, loc] useDefs = getUseDef(model);
+    return compile(pt.top, useDefs, types);
 }
