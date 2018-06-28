@@ -1,0 +1,28 @@
+module SimplePNG
+
+import crc
+
+struct PNG@(encoding = Encoding.ASCII, endian = Endianness.BIG) {
+    Signature _
+    Chunk[] chunks
+    IEND _
+}
+
+struct Signature {
+    u8 _ ?(== 0x89)
+    u8[] _[3] ?(== "PNG")
+    u8[] _[4] ?(== [0x0d, 0x0a, 0x1a, 0x0a])
+}
+
+struct Chunk {
+    u32 length
+    u8[] type[4] ?(!= "IEND")
+    u8[] data[length]
+    u32 crc
+}
+
+struct IEND {
+    u32 length ?(this.as[int]==0)
+    u8[] type[4] ?(== "IEND")
+    u32 crc ?(== [0xae, 0x42, 0x60, 0x82])
+}
