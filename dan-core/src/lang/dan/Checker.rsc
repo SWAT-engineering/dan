@@ -500,6 +500,13 @@ void collect(current: (Expr) `[<{Expr ","}*  exprs>]`, Collector c){
      });
 }
 
+void collect(current: (Expr) `<Expr e>.as[<Type t>]`, Collector c){
+    collect(e, c);
+    collect(t, c);
+   	c.calculate("casting", current, [t], AType (Solver s){
+		return s.getType(t);
+	});
+}
 
 
 void collect(current: (Expr) `<StringLiteral lit>`, Collector c){
