@@ -112,7 +112,7 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> <Side
 		
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Expr n>] <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	{if (aCond <- cond)
-		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>), <compileCondForRep(aCond, useDefs, types, index)>)";
+		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>), <compile(aCond, useDefs, types, index)>)";
 	else
 		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>))";}
 	when emptyCond := ([Aux] "{ }").sc,
@@ -123,7 +123,7 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Exp
 		 
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Expr n>] <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	{if (aCond <- cond)
-		"post(repn(\"<safeId>\", <compile(current, ty, id, args, emptyCond, useDefs, types, index)>,  <compile(n, useDefs, types, index)>), <compileCondForRep(aCond, useDefs, types, index)>)";
+		"post(repn(\"<safeId>\", <compile(current, ty, id, args, emptyCond, useDefs, types, index)>,  <compile(n, useDefs, types, index)>), <compile(aCond, useDefs, types, index)>)";
 	else
 		"repn(\"<safeId>\", <compile(current, ty, id, args, emptyCond, useDefs, types, index)>,  <compile(n, useDefs, types, index)>)";}
 	when emptyCond := ([Aux] "{ }").sc,
@@ -131,29 +131,33 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Exp
 		 aty := types[ty@\loc],
 		 !isSimpleByteType(aty);
 		 
-str compileCondForRep((SideCondition) `?(== <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+str compile((SideCondition) `?(== <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"eq(<compile(e, useDefs, types, index)>)";
 
-str compileCondForRep((SideCondition) `?(!= <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+str compile((SideCondition) `?(!= <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"not(eq(<compile(e, useDefs, types, index)>))";
 	
-str compileCondForRep((SideCondition) `?(<Expr e1> != <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	"not(<op>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>))"
-	when t1 := types[e1@\loc],
-		 t2 := types[e2@\loc],
-		 op := calculateEq({t1,t2});
+str calculateOp("==", set[AType] ts) = calculateEq(ts);
+str calculateOp("!=", set[AType] ts) = "not(<calculateEq(ts)>)";
+default str calculateOp(str other, set[AType] ts){ throw "generation for operator <other> not yet implemented"; }
 
-str compileCondForRep((SideCondition) `?(<Expr e1> == <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+str compile(current:(SideCondition) `? ( <Expr e1> <ComparatorOperator uo> <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"<op>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)"
 	when t1 := types[e1@\loc],
 		 t2 := types[e2@\loc],
-		 op := calculateEq({t1,t2});
-
-str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){
-	println(e);
-}
+		 op := calculateOp("<uo>", {t1,t2});
+		 
+str compile(current:(SideCondition) `? ( <Expr e1> <EqualityOperator uo> <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	"<op>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)"
+	when t1 := types[e1@\loc],
+		 t2 := types[e2@\loc],
+		 op := calculateOp("<uo>", {t1,t2});		 
+		 
+default str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ 
+	throw "Side condition \"<current>\" cannot be generated.";
+}		 
 	
-default str compileCondForRep(SideCondition sc, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
+default str compile(SideCondition sc, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
 
 str compile(Formals current, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
 	= "(<intercalate(", ", actualFormals)>)"
@@ -167,7 +171,7 @@ str compile(DeclInStruct current, Type ty, DId id, Arguments? args, SideConditio
 	=  compileType(ty, safeId, compiledArgs, compiledCond, useDefs, types, index)
 	when safeId := makeSafeId("<id>", id@\loc),
 		 compiledArgs := ("" | it + compile(aargs, useDefs, types, index) | aargs <- args),
-		 compiledCond := ("" | it + ", <compileCondForRep(c, useDefs, types, index)>" | c <- cond);   
+		 compiledCond := ("" | it + ", <compile(c, useDefs, types, index)>" | c <- cond);   
 	        	
 str compile(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	compile(current, ty, id, args, cond, useDefs, types, index);

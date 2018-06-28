@@ -98,10 +98,7 @@ syntax Expr
 		| Expr "\>\>\>" Expr
 	)
 	> non-assoc Expr ComparatorOperator Expr
-	> left (
-		  Expr "==" Expr
-		| Expr "!=" Expr
-	)
+	> left Expr EqualityOperator Expr
 	> left Expr "&" Expr
 	> left Expr "^" Expr
 	> left Expr "|" Expr
@@ -115,12 +112,16 @@ lexical ComparatorOperator
 	| "\<"
 	| "\>="
 	| "\>"
-	;   	
+	;   
+	
+lexical EqualityOperator
+	= "=="
+	| "!="
+	;		
 	
 lexical UnaryOperator
 	= ComparatorOperator
-	| "=="
-	| "!="
+	| EqualityOperator
 	;
 	
 syntax UnaryExpr

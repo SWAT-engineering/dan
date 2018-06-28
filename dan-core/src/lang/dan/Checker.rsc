@@ -627,16 +627,10 @@ void collectRange(Expr access, Expr e, current: (Range) `<Expr idx>`, Collector 
 	});	
 }
 
-void collect(current: (Expr) `<Expr e1> == <Expr e2>`, Collector c){
+void collect(current: (Expr) `<Expr e1> <EqualityOperator op> <Expr e2>`, Collector c){
     collect(e1, e2, c);
-    collectInfixOperation(current, "==", infixEquality, e1, e2, c); 
+    collectInfixOperation(current, "<op>", infixEquality, e1, e2, c); 
 }
-
-void collect(current: (Expr) `<Expr e1> != <Expr e2>`, Collector c){
-    collect(e1, e2, c);
-    collectInfixOperation(current, "!=", infixEquality, e1, e2, c); 
-}
-
 
 void collect(current: (Expr) `<Expr e1> || <Expr e2>`, Collector c){
     collect(e1, e2, c);
