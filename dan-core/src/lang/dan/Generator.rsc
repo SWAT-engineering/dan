@@ -25,23 +25,18 @@ int sizeSimpleByteType(sType(n)) = n;
 int sizeSimpleByteType(AType ty){ throw "Incorrect operation on type <prettyPrintAType(ty)>"; }
 
 
+
+
 str calculateEq({intType()}) = "eqNum";
-	
 str calculateEq({strType()}) = "eqStr";
-
 str calculateEq({strType(), uType(_)}) =  "eq";
-
 str calculateEq({strType(), sType(_)}) = "eq";
-
 str calculateEq({intType(), uType(_)}) = "eq";
-
 str calculateEq({intType(), sType(_)}) = "eq";	
-
 str calculateEq({sType(_)}) = "eq";
-
 str calculateEq({uType(_)}) = "eq";
 
-default str calculateEq(set[AType] ts) { throw "Incorrect arguments to calculateEq: <ts>"; } 
+//default str calculateEq(set[AType] ts) { throw "Incorrect arguments to calculateEq: <ts>"; } 
 
 str makeSafeId(str id, loc lo) =
 	"<newId>_<lo.offset>_<lo.length>_<lo.begin.line>_<lo.end.line>_<lo.begin.column>_<lo.end.column>"
@@ -71,6 +66,7 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 	  'import static io.parsingdata.metal.Shorthand.last;
 	  'import static io.parsingdata.metal.Shorthand.mul;
 	  ' 
+	  '
 	  'public class <safeId> {
 	  '\tprivate <safeId>(){}
 	  '
@@ -137,25 +133,16 @@ str compile((SideCondition) `?(== <Expr e>)`, rel[loc,loc] useDefs, map[loc, ATy
 str compile((SideCondition) `?(!= <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"not(eq(<compile(e, useDefs, types, index)>))";
 	
-str calculateOp("==", set[AType] ts) = calculateEq(ts);
-str calculateOp("!=", set[AType] ts) = "not(<calculateEq(ts)>)";
+str calculateOp("==", set[AType] ts, str e1, str e2) = "<calculateEq(ts)>(<e1>,<e2>)";
+str calculateOp("!=", set[AType] ts, str e1, str e2) = "not(<calculateEq(ts)>(<e1>,<e2>))";
+str calculateOp("&&", set[AType] ts, str e1, str e2) = "and(<e1>,<e2>)";
+str calculateOp("||", set[AType] ts, str e1, str e2) = "and(<e1>,<e2>)";
+	
+
 default str calculateOp(str other, set[AType] ts){ throw "generation for operator <other> not yet implemented"; }
 
-str compile(current:(SideCondition) `? ( <Expr e1> <ComparatorOperator uo> <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	"<op>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)"
-	when t1 := types[e1@\loc],
-		 t2 := types[e2@\loc],
-		 op := calculateOp("<uo>", {t1,t2});
-		 
-str compile(current:(SideCondition) `? ( <Expr e1> <EqualityOperator uo> <Expr e2>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	"<op>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)"
-	when t1 := types[e1@\loc],
-		 t2 := types[e2@\loc],
-		 op := calculateOp("<uo>", {t1,t2});		 
-		 
-default str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ 
-	throw "Side condition \"<current>\" cannot be generated.";
-}		 
+default str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
+	= compile(e, useDefs, types, index);
 	
 default str compile(SideCondition sc, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
 
@@ -225,6 +212,8 @@ str compile(current: (Expr) `<BitLiteral nat>`, rel[loc,loc] useDefs, map[loc, A
 
 str compile(current: (Expr) `<NatLiteral nat>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "con(<nat>)";
 
+str compile(current: (Expr) `(<Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = compile(e, useDefs, types, index);
+
 str compile(current: (Expr) `[ <{Expr ","}* es>]`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "con(<intercalate(", ",["<e>" | e <- es])>)"
 	when listType(ty) := types[current@\loc]; 
 
@@ -232,7 +221,29 @@ str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] typ
 	when lo := ([l | l <- useDefs[id@\loc]])[0],
 		 srcId := "<index(lo)>",
 		 bprintln("<id@\loc> =\> <lo>"); 
-	  
+		 
+str compile(current: (Expr) `<Expr e1> <ComparatorOperator uo> <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("<uo>", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	when t1 := types[e1@\loc],
+		 t2 := types[e2@\loc];
+		 
+str compile(current: (Expr) `<Expr e1> <EqualityOperator uo> <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("<uo>", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	when t1 := types[e1@\loc],
+		 t2 := types[e2@\loc];
+	
+		 
+		 
+str compile(current: (Expr) `<Expr e1> && <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("&&", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	when t1 := types[e1@\loc],
+		 t2 := types[e2@\loc];
+		 
+str compile(current: (Expr) `<Expr e1> || <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("||", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	when t1 := types[e1@\loc],
+		 t2 := types[e2@\loc];
+		 
 str type2Java(AType t) = "ValueExpression"
 	when isTokenType(t);	  
 str type2Java(intType()) = "int";
