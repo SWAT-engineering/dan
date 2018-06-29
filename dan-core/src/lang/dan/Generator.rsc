@@ -21,7 +21,7 @@ bool isSimpleByteType(sType(_)) = true;
 bool isSimpleByteType(AType _) = false;
 
 int sizeSimpleByteType(uType(n)) = n;
-int sizeSimpleByteType(sType(n)) = n;
+int sizeSimpleByteType(sType(n)) = n;  
 int sizeSimpleByteType(AType ty){ throw "Incorrect operation on type <prettyPrintAType(ty)>"; }
 
 
@@ -35,6 +35,7 @@ str calculateEq({intType(), uType(_)}) = "eq";
 str calculateEq({intType(), sType(_)}) = "eq";	
 str calculateEq({sType(_)}) = "eq";
 str calculateEq({uType(_)}) = "eq";
+str calculateEq({uType(_), listType(intType())}) = "eq";
 
 //default str calculateEq(set[AType] ts) { throw "Incorrect arguments to calculateEq: <ts>"; } 
 
@@ -108,7 +109,7 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> <Side
 		
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Expr n>] <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	{if (aCond <- cond)
-		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>), <compile(aCond, useDefs, types, index)>)";
+		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>), <compileSideCondition(aCond, aty, useDefs, types, index)>)";
 	else
 		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>))";}
 	when emptyCond := ([Aux] "{ }").sc,
@@ -127,24 +128,27 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Exp
 		 aty := types[ty@\loc],
 		 !isSimpleByteType(aty);
 		 
-str compile((SideCondition) `?(== <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	"eq(<compile(e, useDefs, types, index)>)";
+str compileSideCondition((SideCondition) `?(== <Expr e>)`, AType t1, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("==", {t1,t2}, [compile(e, useDefs, types, index)])
+	when t2 := types[e@\loc];
 
-str compile((SideCondition) `?(!= <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	"not(eq(<compile(e, useDefs, types, index)>))";
+str compileSideCondition((SideCondition) `?(!= <Expr e>)`, AType t1,  rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+	calculateOp("!=", {t1,t2}, [compile(e, useDefs, types, index)])
+	when t2 := types[e@\loc];
 	
-str calculateOp("==", set[AType] ts, str e1, str e2) = "<calculateEq(ts)>(<e1>,<e2>)";
-str calculateOp("!=", set[AType] ts, str e1, str e2) = "not(<calculateEq(ts)>(<e1>,<e2>))";
-str calculateOp("&&", set[AType] ts, str e1, str e2) = "and(<e1>,<e2>)";
-str calculateOp("||", set[AType] ts, str e1, str e2) = "and(<e1>,<e2>)";
+str calculateOp("==", set[AType] ts, list[str] es) = "<calculateEq(ts)>(<intercalate(",", es)>)";
+str calculateOp("!=", set[AType] ts, list[str] es) = "not(<calculateEq(ts)>(<intercalate(",", es)>))";
+str calculateOp("&&", set[AType] ts, list[str] es) = "and(<intercalate(",", es)>)";
+str calculateOp("||", set[AType] ts, list[str] es) = "or(<intercalate(",", es)>)";
+
 	
 
 default str calculateOp(str other, set[AType] ts){ throw "generation for operator <other> not yet implemented"; }
 
-default str compile(current:(SideCondition) `? ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
+default str compileSideCondition(current:(SideCondition) `? ( <Expr e>)`, AType ty, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
 	= compile(e, useDefs, types, index);
 	
-default str compile(SideCondition sc, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
+default str compileSideCondition(SideCondition sc, AType ty, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
 
 str compile(Formals current, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
 	= "(<intercalate(", ", actualFormals)>)"
@@ -157,8 +161,9 @@ str compile(current:(Formal) `<Type ty> <Id id>`, rel[loc,loc] useDefs, map[loc,
 str compile(DeclInStruct current, Type ty, DId id, Arguments? args, SideCondition? cond, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
 	=  compileType(ty, safeId, compiledArgs, compiledCond, useDefs, types, index)
 	when safeId := makeSafeId("<id>", id@\loc),
+		 AType aty := types[ty@\loc],
 		 compiledArgs := ("" | it + compile(aargs, useDefs, types, index) | aargs <- args),
-		 compiledCond := ("" | it + ", <compile(c, useDefs, types, index)>" | c <- cond);   
+		 compiledCond := ("" | it + ", <compileSideCondition(c, aty, useDefs, types, index)>" | c <- cond);   
 	        	
 str compile(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size? size> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	compile(current, ty, id, args, cond, useDefs, types, index);
@@ -223,24 +228,24 @@ str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] typ
 		 bprintln("<id@\loc> =\> <lo>"); 
 		 
 str compile(current: (Expr) `<Expr e1> <ComparatorOperator uo> <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	calculateOp("<uo>", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	calculateOp("<uo>", {t1,t2}, [compile(e1, useDefs, types, index), compile(e2, useDefs, types, index)])
 	when t1 := types[e1@\loc],
 		 t2 := types[e2@\loc];
 		 
 str compile(current: (Expr) `<Expr e1> <EqualityOperator uo> <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	calculateOp("<uo>", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	calculateOp("<uo>", {t1,t2}, [compile(e1, useDefs, types, index), compile(e2, useDefs, types, index)])
 	when t1 := types[e1@\loc],
 		 t2 := types[e2@\loc];
 	
 		 
 		 
 str compile(current: (Expr) `<Expr e1> && <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	calculateOp("&&", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	calculateOp("&&", {t1,t2}, [compile(e1, useDefs, types, index), compile(e2, useDefs, types, index)])
 	when t1 := types[e1@\loc],
 		 t2 := types[e2@\loc];
 		 
 str compile(current: (Expr) `<Expr e1> || <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	calculateOp("||", {t1,t2}, compile(e1, useDefs, types, index), compile(e2, useDefs, types, index))
+	calculateOp("||", {t1,t2}, [compile(e1, useDefs, types, index), compile(e2, useDefs, types, index)])
 	when t1 := types[e1@\loc],
 		 t2 := types[e2@\loc];
 		 
@@ -775,7 +780,9 @@ private TypePalConfig getDanConfig() = tconfig(
     getTypeInNamelessType = danGetTypeInAnonymousStruct
 );
 
+
 */
+
 public start[Program] sampleDan(str name) = parse(#start[Program], |project://dan-core/<name>.dan|);
 
 str compileDan(str name) {
