@@ -387,12 +387,7 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      c.enterScope(current); {
      	collectFormals(id, formals, c);
      	collect(decls, c);
-     	ts = for (d <- decls){
-     			switch (d){
-     				case (DeclInChoice) `abstract <Type ty> <Id _>`: append(ty);
-     				case (DeclInChoice) `<Type ty> <Arguments? _> <Size? _>`: append(ty);
-     			};
-     		};
+     	ts = [ d.tp | d <- decls];
      	currentScope = c.getScope();
      	c.require("abstract fields", current, ts, void(Solver s){
      		//ts = for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){

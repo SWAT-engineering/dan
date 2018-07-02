@@ -136,8 +136,8 @@ syntax Range
 	 ;
 	
 syntax DeclInChoice
-	= "abstract" Type Id
-	| Type Arguments? Size?
+	= "abstract" Type tp Id id
+	| Type tp Arguments? args Size? sz
 	;
 
 syntax AnonStruct
