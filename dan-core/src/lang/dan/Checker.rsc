@@ -788,10 +788,10 @@ list[Message] runDan(str name, bool debug = false) {
     return tm.messages;
 }
  
-bool testDan(int n, bool debug = false) {
-    return runTests([|project://dan-core/src/lang/dan/dan<util::Math::toString(n)>.ttl|], #start[Program], TModel (Tree t) {
+bool testDan(int n, bool debug = false, set[str] runOnly = {}) {
+    return runTests([|project://dan-core/src/lang/dan/dan<"<n>">.ttl|], #start[Program], TModel (Tree t) {
         return danTModelFromTree(t, debug=debug);
-    });
+    }, runOnly = runOnly);
 }
 
  
