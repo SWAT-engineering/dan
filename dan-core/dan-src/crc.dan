@@ -1,3 +1,4 @@
 module crc
 
+@(engineering.swat.algorithms.CRC32)
 int crc32(int x)

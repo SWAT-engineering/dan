@@ -18,7 +18,7 @@ data AType
 	| typeType()
 	| listType(AType ty)
 	| consType(AType formals)
-	| funType(str name, AType returnType, AType formals)
+	| funType(str name, AType returnType, AType formals, str javaRef)
 	| refType(str name)
 	| anonType(lrel[str, AType] fields)
 	| uType(int n)
@@ -75,7 +75,7 @@ str prettyPrintAType(anonType(_)) = "anonymous";
 str prettyPrintAType(uType(n)) = "u<n>";
 str prettyPrintAType(sType(n)) = "s<n>";
 str prettyPrintAType(consType(formals)) = "constructor(<("" | it + "<prettyPrintAType(ty)>," | atypeList(fs) := formals, ty <- fs)>)";
-str prettyPrintAType(funType(name,_,_)) = "fun <name>";
+str prettyPrintAType(funType(name,_,_,_)) = "fun <name>";
 
 AType lub(AType t1, voidType()) = t1;
 AType lub(voidType(), AType t1) = t1;
@@ -239,12 +239,12 @@ void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? a
     c.leaveScope(current);
 }
 
-void collect(current:(TopLevelDecl) `<Type t> <Id id> <Formals? formals>`,  Collector c) {
+void collect(current:(TopLevelDecl) `@( <JavaId jid> ) <Type t> <Id id> <Formals? formals>`,  Collector c) {
      actualFormals = [af | fformals <- formals, af <- fformals.formals];
      collect(t, c);
      collect(actualFormals, c);
      c.define("<id>", funId(), current, defType([t] + actualFormals, AType(Solver s) {
-     	return funType("<id>", s.getType(t), atypeList([s.getType(a) | a <- actualFormals]));
+     	return funType("<id>", s.getType(t), atypeList([s.getType(a) | a <- actualFormals]), "<jid>");
      	})); 
     
 }
@@ -361,10 +361,10 @@ void collectFunctionArgs(Id id, Arguments current, Collector c){
 		c.require("constructor arguments", current, 
 			  [id] + [a | a <- current.args], void (Solver s) {
 			ty = s.getType(id);  
-			if (!funType(_,_,_) := ty)
+			if (!funType(_,_,_,_) := ty)
 				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
 			else{
-				funType(_, _, formals) = ty;
+				funType(_, _, formals,_) = ty;
 			    argTypes = atypeList([ s.getType(a) |  a <- current.args]);
 				s.requireSubtype(argTypes, formals, error(current, "Wrong type of arguments"));
 			}
@@ -579,10 +579,10 @@ void collect(current: (Expr) `<Id id> <Arguments args>`, Collector c){
 	collectFunctionArgs(id, args, c);
 	c.calculate("function call", current, [id] + [a | a <- args.args], AType(Solver s){
 		ty = s.getType(id);
-		if (!funType(_, _, _) := ty)
+		if (!funType(_, _, _, _) := ty)
 				s.report(error(current, "Function arguments only apply to function types but got %t", ty));
 		else{
-			funType(_, retType, _) = ty;
+			funType(_, retType, _, _) = ty;
 			return retType;
 			
 		}
@@ -752,7 +752,7 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
 }
 
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
-tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(funType(str name, _, _)) = <true, name, {funId()}>;
+tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(funType(str name, _, _, _)) = <true, name, {funId()}>;
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(AType t) = <false, "", {}>;
 
 AType danGetTypeInAnonymousStruct(AType containerType, Tree selector, loc scope, Solver s){

@@ -257,8 +257,16 @@ str compile(current: (Expr) `<NatLiteral nat>`, rel[loc,loc] useDefs, map[loc, A
 
 str compile(current: (Expr) `(<Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = compile(e, useDefs, types, index);
 
+str compile(current: (Expr) `<Id id> ( <{Expr ","}* exprs>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+    "<javaId>.apply(<intercalate(", ", [compile(e, useDefs, types, index) | Expr e <- exprs])>)"
+    when loc funLoc := Set::getOneFrom((useDefs[id@\loc])),
+    	 funType(_,_,_,javaId) := types[funLoc];
+
 str compile(current: (Expr) `<Expr e1> - <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
     "<getInfixOperator("-")>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)";
+    
+str compile(current: (Expr) `<Expr e1> + <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+    "<getInfixOperator("+")>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)";    
 
 str getInfixOperator("-") = "sub";
 str getInfixOperator("+") = "add";

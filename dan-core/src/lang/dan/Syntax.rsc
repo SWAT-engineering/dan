@@ -9,6 +9,10 @@ start syntax Program =
 	"module" Id
 	Import* imports
 	TopLevelDecl* declarations;
+	
+lexical JavaId 
+	= [a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _ .]* !>> [a-z A-Z 0-9 _]
+	;
 
 lexical Id 
 	=  (([a-z A-Z 0-9 _] - [u s]) !<< ([a-z A-Z] - [u s])[a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _]) \ Reserved 
@@ -28,7 +32,7 @@ syntax Import
 syntax TopLevelDecl
 	= "struct" Id Formals? Annos? "{" DeclInStruct* declarations "}"
 	| "choice" Id Formals? Annos? "{" DeclInChoice* declarations "}"
-	| Type Id Formals? 
+	| "@" "(" JavaId ")" Type Id Formals?
 	;
 	
 syntax Annos 
