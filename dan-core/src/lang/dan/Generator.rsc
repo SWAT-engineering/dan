@@ -34,7 +34,12 @@ str calculateEq({sType(_)}) = "eq";
 str calculateEq({uType(_)}) = "eq";
 str calculateEq({uType(_), listType(intType())}) = "eq";
 
-//default str calculateEq(set[AType] ts) { throw "Incorrect arguments to calculateEq: <ts>"; } 
+//default str calculateEq(set[AType] ts) { throw "Incorrect arguments to calculateEq: <ts>"; }
+
+bool biprintln(value v){
+	iprintln(v);
+	return true;
+} 
 
 str makeSafeId(str id, loc lo) =
 	"<newId>_<lo.offset>_<lo.length>_<lo.begin.line>_<lo.end.line>_<lo.begin.column>_<lo.end.column>"
@@ -73,8 +78,7 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 	  '
 	  'public class <safeId> {
 	  '\tprivate <safeId>(){}
-	  '
-	  '\t<intercalate("\n", [compile(declsMap[lo], useDefs, types, index) | lo <- tmpLos + toList(los), lo in declsMap])>
+	  '\t<intercalate("\n", [compile(d, useDefs, types, index) | d <- decls])>
 	  '}"
 	when safeId := moduleName, //makeSafeId("<moduleName>", current@\loc),
 		 map[loc, TopLevelDecl] declsMap := (d@\loc: d | d <- decls),

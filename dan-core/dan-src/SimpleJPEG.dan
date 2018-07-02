@@ -17,14 +17,6 @@ struct SizedSegment{
 	u8[] payload[length - 2]
 }
 
-struct ScanSegment{
-	u8 marker ?(==0xff)
-	u8 identifier ?(== 0xda)
-	u16 length
-	u8[] payload[length - 2]
-	ScanEscape[] choices
-}
-
 choice ScanEscape{
 	struct{
 		u8 scanData ?(!= 0xff)
@@ -34,6 +26,15 @@ choice ScanEscape{
 	}
 	
 }
+
+struct ScanSegment{
+	u8 marker ?(==0xff)
+	u8 identifier ?(== 0xda)
+	u16 length
+	u8[] payload[length - 2]
+	ScanEscape[] choices
+}
+
 
 choice SizedScan{
 	SizedSegment
