@@ -390,22 +390,19 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      	ts = [ d.tp | d <- decls];
      	currentScope = c.getScope();
      	c.require("abstract fields", current, ts, void(Solver s){
-     		//ts = for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
-     		//	append(s.getType(ty));
-     		//};
-     		rel[str id,AType ty] abstractFields = s.getAllDefinedInType(refType("<id>"), currentScope, {fieldId()});
-     		abstractFields = domainX(abstractFields, { "<f.id>" | af <- formals, f <- af.formals });
+     		abstractFields = [<"<id>", s.getType(id)> | (DeclInChoice) `abstract <Type _> <Id id>` <- decls];
      		for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
-     			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
-     			for (f <- abstractFields){
-     				try{
-     					AType t = s.getTypeInType(s.getType(ty), [Id] "<f.id>", { fieldId() }, currentScope);
-     				}catch _:{
-     					s.report(error(ty, "Missing implementation of abstract field")); 
-     				};
-     				
-     			};
-     			
+                map[str id, AType tp] definedFields;
+                if (anonType(fields) := s.getType(ty)) {
+                    definedFields = toMapUnique(fields);
+                }
+                else {
+                   definedFields = toMapUnique(s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()}));
+                }
+                for (<aId, aTy> <- abstractFields) {
+                    s.requireTrue(aId in definedFields, error(ty, "Field %v is missing from %v", aId, ty));
+                    s.requireSubtype(definedFields[aId], aTy, error(ty, "Field %v is not of the expected type %t", aId, aTy));
+                }
      		};
      			
      	});

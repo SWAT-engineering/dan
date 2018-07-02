@@ -135,7 +135,7 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
     u16 nextCluster ? (== 0xFFF8)
   }
 }
-]] expect { "Missing implementation of abstract field" }
+]] expect { "Field nextCluster is missing from anonymous" }
 
 test D14 [[
 module m
@@ -166,7 +166,7 @@ choice FileCluster2(u16 myCluster, u32 clusterSize, int clusterStart){
   }
   AuxStruct
 }
-]] expect { "Missing implementation of abstract field" }
+]] expect { "Field nextCluster is missing from AuxStruct" }
 
 test D16 [[
 module m
