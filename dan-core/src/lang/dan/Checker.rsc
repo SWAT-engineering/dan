@@ -394,9 +394,8 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      		//	append(s.getType(ty));
      		//};
      		rel[str id,AType ty] abstractFields = s.getAllDefinedInType(refType("<id>"), currentScope, {fieldId()});
-     		for (actualFormals <- formals, formal <- actualFormals.formals)
-     			abstractFields = {f | f <-abstractFields, f.id != "<formal.id>"};
-     		 for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
+     		abstractFields = domainX(abstractFields, { "<f.id>" | af <- formals, f <- af.formals });
+     		for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
      			//set[str id, AType ty] fsConcrete = //s.getAllDefinedInType(s.getType(ty), currentScope, {fieldId()});
      			for (f <- abstractFields){
      				try{
