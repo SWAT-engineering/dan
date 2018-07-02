@@ -213,7 +213,21 @@ void collect(current: (Program) `module <Id moduleName> <Import* imports> <TopLe
     c.leaveScope(current);
 }
  
-Tree newConstructorId(Id id) = [ConsId] "$<id>";
+Tree newConstructorId(Id id, loc root) {
+    return visit(parse(#ConsId, "$<id>")) {
+        case Tree t => t[@\loc = relocsingleLine(t@\loc, root)] 
+            when t has \loc
+    };
+}
+
+private loc relocsingleLine(loc osrc, loc base) 
+    = (base.top)
+        [offset = base.offset + osrc.offset]
+        [length = osrc.length]
+        [begin = <base.begin.line, base.begin.column + osrc.begin.column>]
+        [end = <base.end.line, base.begin.column + osrc.end.column>]
+        ;
+
  
 void collect(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`,  Collector c) {
      c.define("<id>", structId(), current, defType(refType("<id>")));
@@ -332,7 +346,7 @@ void collectArgs(Type ty, Arguments? current, Collector c){
 				//println(t);
 				//println(conId);
 				//println(currentScope);
-				ct = s.getTypeInType(t, newConstructorId([Id] "<idStr>"), {consId()}, currentScope);
+				ct = s.getTypeInType(t, newConstructorId([Id] "<idStr>", ty@\loc), {consId()}, currentScope);
 				argTypes = atypeList([ s.getType(a) | aargs <- current, a <- aargs.args]);
 				s.requireSubtype(argTypes, ct.formals, error(current, "Wrong type of arguments"));
 			}
@@ -360,7 +374,8 @@ void collectFunctionArgs(Id id, Arguments current, Collector c){
 
 void collectFormals(Id id, Formals? current, Collector c){
 	actualFormals = [af | fformals <- current, af <- fformals.formals];
-	c.define("<newConstructorId(id)>", consId(), id, defType(actualFormals, AType(Solver s) {
+	constructorFakeTree = newConstructorId(id, id@\loc);
+	c.define("<constructorFakeTree>", consId(), constructorFakeTree, defType(actualFormals, AType(Solver s) {
      		return consType(atypeList([s.getType(a) | a <- actualFormals]));
     }));
     collect(actualFormals, c);
@@ -379,7 +394,7 @@ void collect(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? a
      			};
      		};
      	currentScope = c.getScope();
-     	c.require("abstract fields", current, [id] + ts, void(Solver s){
+     	c.require("abstract fields", current, ts, void(Solver s){
      		//ts = for ((DeclInChoice) `<Type ty> <Arguments? args> <Size? size>` <- decls){
      		//	append(s.getType(ty));
      		//};
