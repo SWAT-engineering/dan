@@ -73,7 +73,7 @@ syntax DeclInStruct
 // precedance and associativity based on Java
 // as described here: https://introcs.cs.princeton.edu/java/11precedence/
 syntax Expr 
-	= Expr ".as[" Type "]"
+	= Expr ".as" "[" Type "]"
 	> NatLiteral
 	| HexIntegerLiteral
 	| BitLiteral
