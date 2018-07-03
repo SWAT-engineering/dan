@@ -135,9 +135,7 @@ AType infixArithmetic(t1, t2) = intType()
 default AType infixArithmetic(AType t1, AType t2){ throw "Wrong operands for an arithmetic operation"; }
 
 // TODO make it more flexible. Does this unify?
-AType infixConcat(listType(AType t), listType(t)) = listType(t);
-
-
+AType infixConcat(lt:listType(_), lt) = lt;
 
 bool isUserDefined(refType(_)) = true;
 bool isUserDefined(listType(t)) = isUserDefined(t);

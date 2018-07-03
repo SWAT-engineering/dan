@@ -70,6 +70,7 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 	  'import static io.parsingdata.metal.Shorthand.token;
 	  'import static io.parsingdata.metal.Shorthand.post;
 	  'import static io.parsingdata.metal.Shorthand.last;
+	  'import static io.parsingdata.metal.Shorthand.cat;
 	  'import static io.parsingdata.metal.Shorthand.mul;
 	  'import static io.parsingdata.metal.Shorthand.add;
 	  'import static io.parsingdata.metal.Shorthand.sub;
@@ -125,7 +126,7 @@ str compile(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? an
 
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"rep(\"<safeId>\", <compile(current, ty, id, args, cond, useDefs, types, index)>)"
-	when safeId := makeSafeId("<id>_ARR", current@\loc)
+	when safeId := makeSafeId("<id>", id@\loc)
 		;
 		
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Expr n>] <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
@@ -133,7 +134,7 @@ str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> [<Exp
 		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>), <compileSideCondition(aCond, aty, useDefs, types, index)>)";
 	else
 		"def(\"<safeId>\", mul(con(<size/8>), <compile(n, useDefs, types, index)>))";}
-	when safeId := makeSafeId("<id>_ARR", current@\loc),
+	when safeId := makeSafeId("<id>", id@\loc),
 		 AType aty := types[ty@\loc],
 		 isSimpleByteType(aty),
 		 int size := sizeSimpleByteType(aty);
@@ -269,8 +270,12 @@ str compile(current: (Expr) `<Expr e1> - <Expr e2>`, rel[loc,loc] useDefs, map[l
 str compile(current: (Expr) `<Expr e1> + <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
     "<getInfixOperator("+")>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)";    
 
+str compile(current: (Expr) `<Expr e1> ++ <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
+    "<getInfixOperator("++")>(<compile(e1, useDefs, types, index)>, <compile(e2, useDefs, types, index)>)";    
+
 str getInfixOperator("-") = "sub";
 str getInfixOperator("+") = "add";
+str getInfixOperator("++") = "cat";
 
 str compile(current: (Expr) `[ <{Expr ","}* es>]`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "con(<intercalate(", ",["<e>" | e <- es])>)"
 	when listType(ty) := types[current@\loc]; 
