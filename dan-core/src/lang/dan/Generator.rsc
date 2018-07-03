@@ -46,9 +46,9 @@ str makeSafeId(str id, loc lo) =
 	when newId := (("<id>"=="_")?"dummy":"<id>");
 
 str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLevelDecl* decls>`, rel[loc,loc] useDefs, map[loc, AType] types)
-	= "package io.parsingdata.metal.format;
-	  '
-	  'import io.parsingdata.metal.expression.value.ValueExpression;
+	= "package engineering.swat.formats;
+      '
+      'import io.parsingdata.metal.expression.value.ValueExpression;
 	  'import io.parsingdata.metal.token.Token;
 	  '
 	  'import static io.parsingdata.metal.token.Token.EMPTY_NAME;
@@ -71,6 +71,7 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 	  'import static io.parsingdata.metal.Shorthand.post;
 	  'import static io.parsingdata.metal.Shorthand.last;
 	  'import static io.parsingdata.metal.Shorthand.mul;
+	  'import static io.parsingdata.metal.Shorthand.add;
 	  'import static io.parsingdata.metal.Shorthand.sub;
 	  'import static io.parsingdata.metal.Shorthand.and;
 	  'import static io.parsingdata.metal.Shorthand.or; 
@@ -99,7 +100,7 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 		 };
 		 
 str compile(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? annos> { <DeclInChoice* decls> }`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-   "static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"
+   "public static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"
    when safeId := makeSafeId("<id>", current@\loc),
 		 areThereFormals := (fls <- formals),
 		 startBlock := (areThereFormals?"{ return ":"="),
@@ -111,7 +112,7 @@ str compile(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? an
 		 ; 		 
  
 str compile(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-   "static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"           	
+   "public static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"           	
 	when safeId := makeSafeId("<id>", current@\loc),
 		 areThereFormals := (fls <- formals),
 		 startBlock := (areThereFormals?"{ return ":"="),
@@ -258,7 +259,7 @@ str compile(current: (Expr) `<NatLiteral nat>`, rel[loc,loc] useDefs, map[loc, A
 str compile(current: (Expr) `(<Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = compile(e, useDefs, types, index);
 
 str compile(current: (Expr) `<Id id> ( <{Expr ","}* exprs>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-    "<javaId>.apply(<intercalate(", ", [compile(e, useDefs, types, index) | Expr e <- exprs])>)"
+    "new <javaId>().apply(<intercalate(", ", [compile(e, useDefs, types, index) | Expr e <- exprs])>)"
     when loc funLoc := Set::getOneFrom((useDefs[id@\loc])),
     	 funType(_,_,_,javaId) := types[funLoc];
 
