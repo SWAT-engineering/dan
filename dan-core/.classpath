@@ -3,6 +3,12 @@
 	<classpathentry kind="con" path="org.eclipse.jdt.launching.JRE_CONTAINER"/>
 	<classpathentry kind="con" path="org.eclipse.pde.core.requiredPlugins"/>
 	<classpathentry kind="src" path="src"/>
+	<classpathentry kind="src" path="dan-output"/>
+	<classpathentry kind="src" path="java-src"/>
+	<classpathentry kind="src" path="java-test"/>
+	<classpathentry kind="src" path="test-resources"/>
 	<classpathentry combineaccessrules="false" kind="src" path="/typepal"/>
+	<classpathentry combineaccessrules="false" kind="src" path="/metal-core"/>
+	<classpathentry kind="con" path="org.eclipse.jdt.junit.JUNIT_CONTAINER/4"/>
 	<classpathentry kind="output" path="bin"/>
 </classpath>
