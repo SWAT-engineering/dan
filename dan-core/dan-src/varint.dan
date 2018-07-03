@@ -1,0 +1,27 @@
+module varint 
+
+struct LEB128 {
+    u8[] raw while((it & 0b1000_0000) == 0) // maybe it should be an until?
+    int value = ( int ac = 0 | ((ac << 7) | (r & 0b0111_1111)) | r <- raw[-1:0])  // iterate over it in reverse as to keep the bit shift simpeler
+}
+
+int trailingZeroes(int number)
+
+choice PrefixVarint {
+    abstract int value
+    struct {
+        u8 prefixHeader ?( (this & 0b1) == 0b1) // a single byte
+        int value = prefixHeader >>> 1
+    }
+    struct {
+        u8 prefixHeader ?(!= 0x00) 
+        int prefixLength = trailingZeroes(prefixHeader)
+        u8[] rest [prefixLength]
+        int restValue = (int ac = 0 | (ac << 8 | r) | r <- rest)
+        int value = (prefixLength >>> (prefixLength + 2)) | ( restValue << 8 - prefixLength)
+    }
+    struct {
+        u8 prefixHeader ?(== 0x00) 
+        u64 value
+    }
+}
