@@ -29,6 +29,7 @@ data AType
 data IdRole
     = structId()
     | fieldId()
+    | variableId()
     | consId()
     | moduleId()
     | funId()
@@ -729,6 +730,40 @@ void collect(current: (Expr) `(<Expr e>)`, Collector c){
     collect(e, c); 
     c.fact(current, e);
 }
+
+
+void collect(current: (Expr) `( <Type accuType> <Id accuId> = <Expr init> | <Expr update> | <Id loopVar> \<- <Expr source>)`, Collector c){
+    collect(source, c);  // source should be outside the scope of the reducer
+    c.fact(current, accuId);
+    c.enterScope(current); {
+        collect(accuType, init, update, c);
+        collectGenerator(loopVar, source, c);
+
+        c.define("<accuId>", variableId(), accuId, defType(accuType));
+        c.requireSubtype(update, accuId, error(update, "Expected type: %t got: %t", accuId, update));
+        c.requireSubtype(init, accuId, error(update, "Expected type: %t got: %t", accuId, init));
+    } c.leaveScope(current);
+}
+
+void collect(current: (Expr) `[ <Expr mapper> | <Id loopVar> \<- <Expr source>]`, Collector c){
+    collect(source, c);  // source should be outside the scope of the comprehension 
+    c.calculate("list type", current, [mapper], AType (Solver s) { return listType(s.getType(mapper)); });
+    c.enterScope(current); {
+        collect(mapper, c);
+        collectGenerator(loopVar, source, c);
+    } c.leaveScope(current);
+}
+
+void collectGenerator(Id loopVar, Expr source, Collector c) {
+    c.define("<loopVar>", variableId(), loopVar, defType([source], AType(Solver s) {
+        if (listType(tp) := s.getType(source)) {
+            return tp;
+        }
+        s.report(error(source, "Expected a list type, got: %t", source));
+    }));
+}
+
+
 
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
 	c.calculate("<op>",current, [lhs, rhs], AType(Solver s) {

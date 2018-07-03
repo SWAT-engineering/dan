@@ -82,6 +82,8 @@ syntax Expr
 	| "[" {Expr ","}* "]"
 	| bracket "(" Expr ")"
 	| Id Arguments
+	| "(" Type typ Id id "=" Expr initital "|" Expr update "|" Id loopVar "\<-" Expr source ")"
+	| "[" Expr mapper "|" Id loopVar "\<-" Expr source "]" // maybe need to add a conditional?
 	> Expr "[" Range "]"
 	| Expr "." Id
 	> "-" Expr
@@ -113,7 +115,7 @@ syntax Expr
 		
 lexical ComparatorOperator
 	= "\<="
-	| "\<"
+	| "\<" !>> "-"
 	| "\>="
 	| "\>"
 	;   

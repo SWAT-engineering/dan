@@ -197,3 +197,22 @@ test D21 [[
     	u16 postalCode ?(this > 1)
 	}
 ]]
+
+
+test D22 [[
+    module m
+    
+    struct A {
+        u8[] data
+        int sum = (int it = 0 | it + d | d <- data)
+    }
+]]
+
+test D23 [[
+    module m
+    
+    struct A {
+        u8[] data
+        u8[] shifted = [ d >> 2 | d <- data]
+    }
+]]
