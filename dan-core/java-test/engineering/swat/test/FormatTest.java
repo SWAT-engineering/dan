@@ -20,7 +20,7 @@ public class FormatTest extends ParameterizedParse {
     @Parameterized.Parameters(name="{0} ({4})")
     public static Collection<Object[]> data() throws URISyntaxException, IOException {
         return Arrays.asList(new Object[][] {
-            { "PNG", SimplePNG.PNG_389_113_24_28_0_1, parseState("/test.png"), enc(), true },
+            { "PNG", SimplePNG.PNG_390_113_24_28_0_1, parseState("/test.png"), enc(), true },
             { "JPEG", SimpleJPEG.Format_611_51_44_48_0_1 , parseState("/test.jpg"), enc(), true }
         });
     }
