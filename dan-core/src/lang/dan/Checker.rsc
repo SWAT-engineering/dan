@@ -727,8 +727,7 @@ void collect(current: (Expr) `<Expr e1> ++ <Expr e2>`, Collector c){
 
 void collect(current: (Expr) `(<Expr e>)`, Collector c){
     collect(e, c); 
-    // TODO is this really necessary
-    c.calculate("parenthesized expression", current, [e], AType(Solver s){ return s.getType(e); });
+    c.fact(current, e);
 }
 
 void collectInfixOperation(Tree current, str op, AType (AType,AType) infixFun, Tree lhs, Tree rhs, Collector c) {
