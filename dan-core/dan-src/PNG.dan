@@ -1,12 +1,6 @@
-module PNG
+module SimplePNG
 
 import crc
-
-struct PNG@(encoding = Encoding.ASCII, endian = Endianness.BIG) {
-    Signature _
-    Chunk[] chunks
-    IEND _
-}
 
 struct Signature {
     u8 _ ?(== 0x89)
@@ -18,11 +12,17 @@ struct Chunk {
     u32 length
     u8[] type[4] ?(!= "IEND")
     u8[] data[length]
-    u32 crc ?(this == crc32(type + data))
+    u32 crc ?(== crc32(type ++ data))
 }
 
 struct IEND {
-    u32 length ?(==0)
+    u32 length ?(this.as[int]==0)
     u8[] type[4] ?(== "IEND")
     u32 crc ?(== [0xae, 0x42, 0x60, 0x82])
+}
+
+struct PNG@(encoding = Encoding.ASCII, endian = Endianness.BIG) {
+    Signature _
+    Chunk[] chunks
+    IEND _
 }
