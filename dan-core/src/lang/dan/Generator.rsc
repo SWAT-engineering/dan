@@ -287,8 +287,12 @@ str type2Java(listType(t)) = "List\<<type2Java(t)>\>"
 public start[Program] sampleDan(str name) = parse(#start[Program], |project://dan-core/<name>.dan|);
 
 str compileDan(str name) {
-    start[Program] pt = sampleDan(name);
-    TModel model = danTModelFromTree(pt);
+	start[Program] pt = sampleDan(name);
+	return compileDan(pt);
+}
+
+str compileDan(start[Program] pt) {
+	TModel model = danTModelFromTree(pt);
     map[loc, AType] types = getFacts(model);
     rel[loc, loc] useDefs = getUseDef(model);
     return compile(pt.top, useDefs, types);
