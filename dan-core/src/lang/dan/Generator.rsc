@@ -48,35 +48,10 @@ str makeSafeId(str id, loc lo) =
 str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLevelDecl* decls>`, rel[loc,loc] useDefs, map[loc, AType] types)
 	= "package engineering.swat.formats;
       '
-      'import io.parsingdata.metal.expression.value.ValueExpression;
-	  'import io.parsingdata.metal.token.Token;
+      'import io.parsingdata.metal.token.Token;
 	  '
 	  'import static io.parsingdata.metal.token.Token.EMPTY_NAME;
-	  'import static io.parsingdata.metal.Shorthand.EMPTY;
-	  'import static io.parsingdata.metal.Shorthand.con;
-	  'import static io.parsingdata.metal.Shorthand.seq;
-	  'import static io.parsingdata.metal.Shorthand.eq;
-	  'import static io.parsingdata.metal.Shorthand.eqNum;
-	  'import static io.parsingdata.metal.Shorthand.eqStr;
-	  'import static io.parsingdata.metal.Shorthand.gtNum;
-	  'import static io.parsingdata.metal.Shorthand.gtEqNum;
-	  'import static io.parsingdata.metal.Shorthand.ltEqNum;
-	  'import static io.parsingdata.metal.Shorthand.ltNum;
-	  'import static io.parsingdata.metal.Shorthand.ref;
-	  'import static io.parsingdata.metal.Shorthand.rep;
-	  'import static io.parsingdata.metal.Shorthand.repn;
-	  'import static io.parsingdata.metal.Shorthand.def;
-	  'import static io.parsingdata.metal.Shorthand.not;
-	  'import static io.parsingdata.metal.Shorthand.token;
-	  'import static io.parsingdata.metal.Shorthand.post;
-	  'import static io.parsingdata.metal.Shorthand.last;
-	  'import static io.parsingdata.metal.Shorthand.cat;
-	  'import static io.parsingdata.metal.Shorthand.mul;
-	  'import static io.parsingdata.metal.Shorthand.add;
-	  'import static io.parsingdata.metal.Shorthand.sub;
-	  'import static io.parsingdata.metal.Shorthand.and;
-	  'import static io.parsingdata.metal.Shorthand.or; 
-	  'import static io.parsingdata.metal.Shorthand.cho; 
+	  'import static io.parsingdata.metal.Shorthand.*;
 	  '
 	  'public class <safeId> {
 	  '\tprivate <safeId>(){}
