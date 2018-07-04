@@ -76,27 +76,25 @@ str compile(current: (Program) `module <Id moduleName> <Import* imports> <TopLev
 		 };
 		 
 str compile(current:(TopLevelDecl) `choice <Id id> <Formals? formals> <Annos? annos> { <DeclInChoice* decls> }`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-   "public static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"
-   when safeId := makeSafeId("<id>", current@\loc),
-		 areThereFormals := (fls <- formals),
+   "public static final Token <id><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"
+   when  areThereFormals := (fls <- formals),
 		 startBlock := (areThereFormals?"{ return ":"="),
 		 endBlock := (areThereFormals?"}":""),
 		 compiledFormals := {if (fs  <- formals) compile(fs, useDefs, types, index); else "";},
 		 declsNumber := (0| it +1 | d <-decls),
 		 compiledDecls := ((declsNumber == 0)?"EMPTY":
-		 	((declsNumber ==  1)? (([compile(d,useDefs,types, index) | d <-decls])[0]) : "cho(<intercalate(", ", ["\"<safeId>\""] + [compile(d, useDefs, types, index) | d <-decls])>)"))
+		 	((declsNumber ==  1)? (([compile(d,useDefs,types, index) | d <-decls])[0]) : "cho(<intercalate(", ", ["\"<id>\""] + [compile(d, useDefs, types, index) | d <-decls])>)"))
 		 ; 		 
  
 str compile(current:(TopLevelDecl) `struct <Id id> <Formals? formals> <Annos? annos> { <DeclInStruct* decls> }`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-   "public static final Token <safeId><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"           	
-	when safeId := makeSafeId("<id>", current@\loc),
-		 areThereFormals := (fls <- formals),
+   "public static final Token <id><compiledFormals> <startBlock> <compiledDecls>; <endBlock>"           	
+	when areThereFormals := (fls <- formals),
 		 startBlock := (areThereFormals?"{ return ":"="),
 		 endBlock := (areThereFormals?"}":""),
 		 compiledFormals := {if (fs  <- formals) compile(fs, useDefs, types, index); else "";},
 		 declsNumber := (0| it +1 | d <-decls),
 		 compiledDecls := ((declsNumber == 0)?"EMPTY":
-		 	((declsNumber ==  1)? (([compile(d,useDefs,types, index) | d <-decls])[0]) : "seq(<intercalate(", ", ["\"<safeId>\""] + [compile(d, useDefs, types, index) | d <-decls])>)"))
+		 	((declsNumber ==  1)? (([compile(d,useDefs,types, index) | d <-decls])[0]) : "seq(<intercalate(", ", ["\"<id>\""] + [compile(d, useDefs, types, index) | d <-decls])>)"))
 		 ;
 
 str compile(current:(DeclInStruct) `<Type ty>[] <DId id> <Arguments? args> <SideCondition? cond>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
@@ -191,18 +189,14 @@ str compileType(current:(Type)`<UInt v>`, str containerId, str args, str cond, r
 	(cond == "")? "def(\"<containerId>\", con(<toInt("<v>"[1..])/BYTE_SIZE>))" : "def(\"<containerId>\", con(<toInt("<v>"[1..])/BYTE_SIZE>) <cond>)";	
 
 str compileType(current:(Type)`<Id id>`, str containerId, str args, str cond, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	(args? == "")?safeId:"<safeId><args>"
-	when lo := ([l | l <- useDefs[id@\loc]])[0],
-		 safeId := makeSafeId("<id>", lo);
-	
+	(args? == "")?id:"<id><args>";
 
 	
 str compile(current:(Type)`<UInt v>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	"nod(<toInt("<v>"[1..])/BYTE_SIZE>)";
 
 str compile(current:(Type)`<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	makeSafeId("<id>", lo)
-	when lo := ([l | l <- useDefs[id@\loc]])[0];
+	"<id>";
 	
 
 str compile(current:(SideCondition) `while ( <Expr e>)`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){
