@@ -1,4 +1,4 @@
 {
       "JPEG.Format": ["test.jpg"],
-      "PNG.PNG": ["test.png"]
+      "PNG.PNG": ["test.png", "nfi.png"]
 }
