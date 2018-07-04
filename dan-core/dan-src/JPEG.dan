@@ -1,4 +1,4 @@
-module SimpleJPEG
+module JPEG
 
 struct Header{
 	u8 marker ?(==0xff)

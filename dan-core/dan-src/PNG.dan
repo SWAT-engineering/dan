@@ -1,4 +1,4 @@
-module SimplePNG
+module PNG
 
 import crc
 
