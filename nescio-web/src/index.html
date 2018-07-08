@@ -1,0 +1,148 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
+	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+</head>
+<body>
+
+<h2>Monarch Tokenizer Sample</h2>
+<div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
+
+<script src="/lib/monaco-editor/min/vs/loader.js"></script>
+<script>
+	require.config({ paths: { 'vs': '/lib/monaco-editor/min/vs' }});
+	require(['vs/editor/editor.main'], function() {
+		monaco.languages.register({
+			id: 'nescio'
+		});
+		monaco.languages.setMonarchTokensProvider('nescio', {
+            defaultToken: 'invalid',
+            keywords: [
+                "abstract", "struct", "choice", "module", "import", "while", "this", "it", '.as'
+            ],
+            typeKeywords: [
+                'int', 'str', 'bool', 'typ', 'u8', 'u16', 'u32','u64', 'u128', 's8', 's16', 's32', 's64'
+            ],
+            operators: [
+                '=', '>', '<', '!', '~', '?', ':', '==', '<=', '>=', '!=',
+                '&&', '||', '++', '+', '-', '*', '/', '&', '|', '^', '%',
+                '<<', '>>', '>>>'
+            ],
+
+            // we include these common regular expressions
+            symbols:  /[=><!~?:&|+\-*\/\^%]+/,
+            // C# style strings
+            escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
+
+			tokenizer: {
+				root: [
+                    // identifiers and keywords
+                    [/[a-zA-Z$][a-zA-Z_0-9$]*/, { cases: { 
+                        '@typeKeywords': 'keyword',
+                        '@keywords': 'keyword',
+                        '@default': 'identifier' 
+                    } }],
+                    [/_/, 'identifier'],
+                    // whitespace
+                    { include: '@whitespace' },
+                    [/[{}()\[\]]/, '@brackets'],
+
+                    // delimiters and operators
+                    [/[{}()\[\]]/, '@brackets'],
+                    [/@symbols|\.as/, { cases: { 
+                        '@operators': 'operator',
+                        '@default'  : '' 
+                    } } ],
+
+                    // numbers
+                    [/0[xX][0-9a-fA-F]+/, 'number.hex'],
+                    [/\d+/, 'number'],
+
+                    // delimiter: 
+                    [/[;,.]/, 'delimiter'],
+
+                    // @ befor the meta parameters
+                    [/@(?=[ \t(])/, 'delimiter'],
+
+                    // strings
+                    [/"([^"\\]|\\.)*$/, 'string.invalid' ],  // non-teminated string
+                    [/"/,  { token: 'string.quote', bracket: '@open', next: '@string' } ],
+                    
+				],
+                comment: [
+                    [/[^\/*]+/, 'comment' ],
+                    [/\/\*/,    'comment', '@push' ],    // nested comment
+                    ["\\*/",    'comment', '@pop'  ],
+                    [/[\/*]/,   'comment' ]
+                ],
+
+                string: [
+                    [/[^\\"]+/,  'string'],
+                    [/@escapes/, 'string.escape'],
+                    [/\\./,      'string.escape.invalid'],
+                    [/"/,        { token: 'string.quote', bracket: '@close', next: '@pop' } ]
+                ],
+
+                whitespace: [
+                    [/[ \t\r\n]+/, 'white'],
+                    [/\/\*/,       'comment', '@comment' ],
+                    [/\/\/.*$/,    'comment'],
+                ],
+			}
+		});
+        /*
+		// Define a new theme that constains only rules that match this language
+		monaco.editor.defineTheme('myCoolTheme', {
+			base: 'vs',
+			inherit: false,
+			rules: [
+				{ token: 'custom-info', foreground: '808080' },
+				{ token: 'custom-error', foreground: 'ff0000', fontStyle: 'bold' },
+				{ token: 'custom-notice', foreground: 'FFA500' },
+				{ token: 'custom-date', foreground: '008800' },
+			]
+		});
+        */
+		
+		var editor = monaco.editor.create(document.getElementById('container'), {
+		//	theme: 'myCoolTheme',
+			value: getCode(),
+			language: 'nescio'
+		});
+	});
+	function getCode() {
+		return [
+            'module PNG',
+            '',
+            'import crc',
+            '',
+            'struct Signature {',
+            '    u8 _ ?(== 0x89)',
+            '    u8[] _[3] ?(== "PNG")',
+            '    u8[] _[4] ?(== [0x0d, 0x0a, 0x1a, 0x0a])',
+            '}',
+            '',
+            'struct Chunk {',
+            '    u32 length',
+            '    u8[] type[4] ?(!= "IEND")',
+            '    u8[] data[length]',
+            '    u32 crc ?(== crc32(type ++ data))',
+            '}',
+            '',
+            'struct IEND {',
+            '    u32 length ?(this.as[int]==0)',
+            '    u8[] type[4] ?(== "IEND")',
+            '    u32 crc ?(== [0xae, 0x42, 0x60, 0x82])',
+            '}',
+            '',
+            'struct PNG@(encoding = Encoding.ASCII, endian = Endianness.BIG) {',
+            '    Signature _',
+            '    Chunk[] chunks',
+            '    IEND _',
+            '}'
+		].join('\n');;
+	}
+</script>
+</body>
+</html>
