@@ -1,8 +1,8 @@
 <!DOCTYPE html>
 <html>
 <head>
-	<meta http-equiv="X-UA-Compatible" content="IE=edge" />
-	<meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
+    <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+    <meta http-equiv="Content-Type" content="text/html;charset=utf-8" />
 </head>
 <body>
 
@@ -11,12 +11,12 @@
 
 <script src="/lib/monaco-editor/min/vs/loader.js"></script>
 <script>
-	require.config({ paths: { 'vs': '/lib/monaco-editor/min/vs' }});
-	require(['vs/editor/editor.main'], function() {
-		monaco.languages.register({
-			id: 'nescio'
-		});
-		monaco.languages.setMonarchTokensProvider('nescio', {
+    require.config({ paths: { 'vs': '/lib/monaco-editor/min/vs' }});
+    require(['vs/editor/editor.main'], function() {
+        monaco.languages.register({
+            id: 'nescio'
+        });
+        monaco.languages.setMonarchTokensProvider('nescio', {
             defaultToken: 'invalid',
             keywords: [
                 "abstract", "struct", "choice", "module", "import", "while", "this", "it", '.as'
@@ -35,8 +35,8 @@
             // C# style strings
             escapes: /\\(?:[abfnrtv\\"']|x[0-9A-Fa-f]{1,4}|u[0-9A-Fa-f]{4}|U[0-9A-Fa-f]{8})/,
 
-			tokenizer: {
-				root: [
+            tokenizer: {
+                root: [
                     // identifiers and keywords
                     [/[a-zA-Z$][a-zA-Z_0-9$]*/, { cases: { 
                         '@typeKeywords': 'keyword',
@@ -69,7 +69,7 @@
                     [/"([^"\\]|\\.)*$/, 'string.invalid' ],  // non-teminated string
                     [/"/,  { token: 'string.quote', bracket: '@open', next: '@string' } ],
                     
-				],
+                ],
                 comment: [
                     [/[^\/*]+/, 'comment' ],
                     [/\/\*/,    'comment', '@push' ],    // nested comment
@@ -89,30 +89,75 @@
                     [/\/\*/,       'comment', '@comment' ],
                     [/\/\/.*$/,    'comment'],
                 ],
-			}
-		});
+            }
+        });
+        monaco.languages.registerDefinitionProvider('nescio', {
+            provideDefinition : function (model, position, token) {
+                return xhrPost('/def?line=' + position.lineNumber + '&col=' + position.column, model.getValue()).then(function (res) {
+                    let answer = JSON.parse(res.response);
+                    if (answer.begin) {
+                        return {
+                            uri: model.uri,
+                            range: new monaco.Range(answer.begin.line, answer.begin.column, answer.end.line, answer.end.column),
+                        }
+                    }
+                    return {};
+                });
+            }
+        })
         /*
-		// Define a new theme that constains only rules that match this language
-		monaco.editor.defineTheme('myCoolTheme', {
-			base: 'vs',
-			inherit: false,
-			rules: [
-				{ token: 'custom-info', foreground: '808080' },
-				{ token: 'custom-error', foreground: 'ff0000', fontStyle: 'bold' },
-				{ token: 'custom-notice', foreground: 'FFA500' },
-				{ token: 'custom-date', foreground: '008800' },
-			]
-		});
+        // Define a new theme that constains only rules that match this language
+        monaco.editor.defineTheme('myCoolTheme', {
+            base: 'vs',
+            inherit: false,
+            rules: [
+                { token: 'custom-info', foreground: '808080' },
+                { token: 'custom-error', foreground: 'ff0000', fontStyle: 'bold' },
+                { token: 'custom-notice', foreground: 'FFA500' },
+                { token: 'custom-date', foreground: '008800' },
+            ]
+        });
         */
-		
-		var editor = monaco.editor.create(document.getElementById('container'), {
-		//	theme: 'myCoolTheme',
-			value: getCode(),
-			language: 'nescio'
-		});
-	});
-	function getCode() {
-		return [
+        
+        var editor = monaco.editor.create(document.getElementById('container'), {
+        //    theme: 'myCoolTheme',
+            value: getCode(),
+            language: 'nescio'
+        });
+    });
+
+    function xhrPost(url, body) {
+        var req = null;
+        return new monaco.Promise(function (c, e, p) {
+            req = new XMLHttpRequest();
+            req.onreadystatechange = function () {
+                if (req._canceled) { return; }
+
+                if (req.readyState === 4) {
+                    if ((req.status >= 200 && req.status < 300) || req.status === 1223) {
+                        c(req);
+                    } else {
+                        e(req);
+                    }
+                    req.onreadystatechange = function () { };
+                } else {
+                    p(req);
+                }
+            };
+
+            req.open("POST", url, true);
+            // req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
+            // req.setRequestHeader("Content-Length", body.length);
+            // req.setRequestHeader("Connection", "close");
+            req.responseType = "";
+            req.send(body);
+        }, function () {
+            req._canceled = true;
+            req.abort();
+        });
+    }
+    function getCode() {
+        return [
             'module PNG',
             '',
             'import crc',
@@ -141,8 +186,8 @@
             '    Chunk[] chunks',
             '    IEND _',
             '}'
-		].join('\n');;
-	}
+        ].join('\n');;
+    }
 </script>
 </body>
 </html>
