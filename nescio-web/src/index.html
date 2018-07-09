@@ -6,7 +6,7 @@
 </head>
 <body>
 
-<h2>Monarch Tokenizer Sample</h2>
+<h2>Metal DSL example</h2>
 <div id="container" style="width:800px;height:600px;border:1px solid grey"></div>
 
 <script src="/lib/monaco-editor/min/vs/loader.js"></script>
@@ -104,7 +104,8 @@
                     return {};
                 });
             }
-        })
+        });
+
         /*
         // Define a new theme that constains only rules that match this language
         monaco.editor.defineTheme('myCoolTheme', {
@@ -123,6 +124,31 @@
         //    theme: 'myCoolTheme',
             value: getCode(),
             language: 'nescio'
+        });
+
+        let handle = undefined;
+        editor.model.onDidChangeContent(function() {
+            clearTimeout(handle);
+            handle = setTimeout(function() {
+                xhrPost('/check', editor.model.getValue()).then(function (res) {
+                    const answer = JSON.parse(res.response);
+                    if (answer.errors) {
+                        const markers = answer.errors.map(function (ent) {
+                            return {
+                                severity: monaco.Severity.Error,
+                                startLineNumber: ent.begin.line,
+                                startColumn: ent.begin.column,
+                                endLineNumber: ent.end.line,
+                                endColumn: ent.end.column,
+                                message: ent.message
+                            };
+                        }).filter(exist => exist);
+
+                        monaco.editor.getModels()
+                            .forEach(model => monaco.editor.setModelMarkers(model, '', markers));
+                    }
+                });
+            }, 500);
         });
     });
 
@@ -160,7 +186,8 @@
         return [
             'module PNG',
             '',
-            'import crc',
+            '@(engineering.swat.algorithms.CRC)',
+            'int crc32(int x)',
             '',
             'struct Signature {',
             '    u8 _ ?(== 0x89)',

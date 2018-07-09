@@ -27,19 +27,35 @@ Response handle(r:post("/def", srcRequest)) {
     return response("{}");
 }
 
+Response handle(r:post("/check", srcRequest)) {
+    if (str src := srcRequest(#str)) {
+        return jsonResponse(ok(), (), ("errors": [
+            toRange(at) + ("message" :  msg)
+            | error(msg, at) <- getMessages(getModel(src))
+        ]));
+    }
+    return response("{}");
+}
+
 default Response handle(Request r) = response(badRequest(), "Do not know how to handle: <r>");
 
 @memo
-rel[loc use, loc def] getUseDefs(str source) = getUseDef(danTModelFromTree(parse(#start[Program], source, |project://fakeproject/|)));
+TModel getModel(str source) = danTModelFromTree(parse(#start[Program], source, |project://fakeproject/|));
+
+rel[loc use, loc def] getUseDefs(str source) = getUseDef(getModel(source));
 
 Response lookup(str source, int line, int column) {
     for (<u, d> <- getUseDefs(source)) {
         if (u.begin.line == line && u.end.line == line && u.begin.column <= column && u.end.column >= column) {
-            return jsonResponse(ok(), (), (
-                "begin": ("line":d.begin.line, "column" : d.begin.column + 1),
-                "end": ("line":d.end.line, "column" : d.end.column + 1)
-                ));
+            return jsonResponse(ok(), (), toRange(d));
         }
     }
     return response("{}");
 }
+
+
+map[str,map[str,int]] toRange(loc l) 
+    = (
+        "begin": ("line": l.begin.line, "column" : l.begin.column + 1),
+        "end": ("line": l.end.line, "column" : l.end.column + 1)
+    );
