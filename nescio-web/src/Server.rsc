@@ -3,6 +3,7 @@ module Server
 import util::Webserver;
 import String;
 import IO;
+import Exception;
 
 import lang::dan::Syntax;
 import lang::dan::Checker;
@@ -29,10 +30,16 @@ Response handle(r:post("/def", srcRequest)) {
 
 Response handle(r:post("/check", srcRequest)) {
     if (str src := srcRequest(#str)) {
-        return jsonResponse(ok(), (), ("errors": [
-            toRange(at) + ("message" :  msg)
-            | error(msg, at) <- getMessages(getModel(src))
-        ]));
+        try {
+            return jsonResponse(ok(), (), ("errors": [
+                toRange(at) + ("message" :  msg)
+                | error(msg, at) <- getMessages(getModel(src))
+            ]));
+        }
+        catch ParseError(loc l) : 
+            return jsonResponse(ok(), (), ("errors": [
+                toRange(l[end = l.end[line = l.end.line + 1]][begin = l.begin[line = l.begin.line + 1]]) + ("message" : "Parse error")
+            ]));
     }
     return response("{}");
 }
