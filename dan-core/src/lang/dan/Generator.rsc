@@ -167,7 +167,7 @@ str calculateOp("\<=", set[AType] ts, list[str] es) = "ltEqNum(<intercalate(",",
 
 default str calculateOp(str other, set[AType] ts){ throw "generation for operator <other> not yet implemented"; }
 
-default str compileSideCondition(current:(SideCondition) `? ( <Expr e>)`, AType ty, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index)
+default str compileSideCondition(current:(SideCondition) `? ( <Expr e>)`, AType ty, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) 
 	= compile(e, useDefs, types, index);
 	
 default str compileSideCondition(SideCondition sc, AType ty, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index){ throw "Not yet implemented: <sc>"; } 
@@ -249,7 +249,7 @@ str getInfixOperator("++") = "cat";
 str compile(current: (Expr) `[ <{Expr ","}* es>]`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "con(<intercalate(", ",["<e>" | e <- es])>)"
 	when listType(ty) := types[current@\loc]; 
 
-str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "last(ref(\"<makeSafeId("<srcId>", lo)>\"))" 
+str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "last(ref(\"<makeSafeId("<srcId>", fixedLo)>\"))" 
 	when lo := ([l | l <- useDefs[id@\loc]])[0],
 	     fixedLo := (("<id>" in {"this", "it"}) ? (lo[length=lo.length-1][end=<lo.end.line, lo.end.column-1>]) : lo),
 		 srcId := "<index(fixedLo)>";
