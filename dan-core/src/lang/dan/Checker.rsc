@@ -8,7 +8,7 @@ import String;
 
 extend analysis::typepal::TypePal;
 
-lexical ConsId =  "$" ([a-z A-Z 0-9 _] !<< [a-z A-Z][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
+lexical ConsId =  "$" ([a-z A-Z 0-9 _] !<< [a-z A-Z _][a-z A-Z 0-9 _]* !>> [a-z A-Z 0-9 _])\Reserved;
 
 data AType
 	= voidType()
@@ -219,6 +219,13 @@ Tree newConstructorId(Id id, loc root) {
     };
 }
 
+Tree newFieldNameId(DId id, loc root) {
+    return visit(parse(#ConsId, "$<id>")) {
+        case Tree t => t[@\loc = relocsingleLine(t@\loc, root)] 
+            when t has \loc
+    };
+}
+
 private loc relocsingleLine(loc osrc, loc base) 
     = (base.top)
         [offset = base.offset + osrc.offset]
@@ -281,7 +288,7 @@ void collect(current:(DeclInStruct) `<Type ty> <DId id> <Arguments? args> <Size?
 
 void collectSideCondition(Type ty, DId id, current:(SideCondition) `? ( <Expr e>)`, Collector c){
 	c.enterScope(current);
-	c.define("this", variableId(), id, defType(ty));
+	c.define("this", variableId(), newFieldNameId(id, id@\loc), defType(ty));
 	collect(e, c);
 	c.require("side condition", current, [e], void (Solver s) {
 		s.requireEqual(s.getType(e), boolType(), error(current, "Side condition must be boolean"));
@@ -291,10 +298,11 @@ void collectSideCondition(Type ty, DId id, current:(SideCondition) `? ( <Expr e>
 
 void collectSideCondition(Type ty, DId id, current:(SideCondition) `while ( <Expr e>)`, Collector c){
 	c.enterScope(current);
-	c.define("it", variableId(), id, defType([ty], AType (Solver s) {
-		s.requireTrue(listType(t) := s.getType(ty), error(current, "while side condition can only guard list types"));
-		listType(t) = s.getType(ty);
-		return t;
+	c.define("it", variableId(), newFieldNameId(id, id@\loc), defType([ty], AType (Solver s) {
+	    if (listType(t) := s.getType(ty)) {
+	       return t;
+	    }
+	    s.report(error(current, "while side condition can only guard list types"));
 	}));
 	collect(e, c);
 	c.leaveScope(current);
@@ -729,6 +737,23 @@ void collect(current: (Expr) `(<Expr e>)`, Collector c){
     c.fact(current, e);
 }
 
+void collect(current: (Expr)`! <Expr e>`, Collector c) {
+    collect(e,c);
+    c.calculate(current, "not expression", [e], AType (Solver s) {
+        et = s.getType(e);
+        if (et != boolType()) {
+            s.requireSubtype(et, intType(),error(e, "Expected either a boolean type, or an int type, got: %t", e));
+        }
+        return et;
+    });
+}
+
+void collect(current: (Expr)`- <Expr e>`, Collector c) {
+    collect(e,c);
+    c.fact(current, e);
+    c.requireSubtype(e, intType(), error(e, "Expected a int type, got: %t", e));
+}
+
 
 void collect(current: (Expr) `( <Type accuType> <Id accuId> = <Expr init> | <Expr update> | <Id loopVar> \<- <Expr source>)`, Collector c){
     collect(source, c);  // source should be outside the scope of the reducer
@@ -754,10 +779,10 @@ void collect(current: (Expr) `[ <Expr mapper> | <Id loopVar> \<- <Expr source>]`
 
 void collectGenerator(Id loopVar, Expr source, Collector c) {
     c.define("<loopVar>", variableId(), loopVar, defType([source], AType(Solver s) {
-        if (listType(tp) := s.getType(source)) {
+        if (listType(AType tp) := s.getType(source)) {
             return tp;
         }
-        s.report(error(source, "Expected a list type, got: %t", source));
+        s.report(error(source, "Expected a list type, got: %t <s.getType(source)> <source>", source));
     }));
 }
 
