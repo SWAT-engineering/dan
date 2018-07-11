@@ -5,6 +5,7 @@ struct LEB128 {
     int value = ( int ac = 0 | ((ac << 7) | (r & 0b0111_1111)) | r <- raw[-1:0])  // iterate over it in reverse as to keep the bit shift simpeler
 }
 
+@(java.class.that.contains.this.function)
 int trailingZeroes(int number)
 
 choice PrefixVarint {
