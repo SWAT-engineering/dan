@@ -189,7 +189,7 @@ str compileType(current:(Type)`<UInt v>`, str containerId, str args, str cond, r
 	(cond == "")? "def(\"<containerId>\", con(<toInt("<v>"[1..])/BYTE_SIZE>))" : "def(\"<containerId>\", con(<toInt("<v>"[1..])/BYTE_SIZE>) <cond>)";	
 
 str compileType(current:(Type)`<Id id>`, str containerId, str args, str cond, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
-	(args? == "")?id:"<id><args>";
+	"<id><args>";
 
 	
 str compile(current:(Type)`<UInt v>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
@@ -251,7 +251,8 @@ str compile(current: (Expr) `[ <{Expr ","}* es>]`, rel[loc,loc] useDefs, map[loc
 
 str compile(current: (Expr) `<Id id>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) = "last(ref(\"<makeSafeId("<srcId>", lo)>\"))" 
 	when lo := ([l | l <- useDefs[id@\loc]])[0],
-		 srcId := "<index(lo)>";
+	     fixedLo := (("<id>" in {"this", "it"}) ? (lo[length=lo.length-1][end=<lo.end.line, lo.end.column-1>]) : lo),
+		 srcId := "<index(fixedLo)>";
 		 
 str compile(current: (Expr) `<Expr e1> <ComparatorOperator uo> <Expr e2>`, rel[loc,loc] useDefs, map[loc, AType] types, Tree(loc) index) =
 	calculateOp("<uo>", {t1,t2}, [compile(e1, useDefs, types, index), compile(e2, useDefs, types, index)])
