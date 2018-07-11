@@ -805,7 +805,7 @@ TModel danTModelFromTree(Tree pt, bool debug = false){
     c = newCollector("collectAndSolve", pt, config=getDanConfig(), debug=debug);    // TODO get more meaningfull name
     collect(pt, c);
     handleImports(c, pt, pathConfig(pt@\loc));
-    return newSolver(pt, c.run(), debug=debug).run();
+    return newSolver(pt, c.run()).run();
 }
 
 tuple[bool isNamedType, str typeName, set[IdRole] idRoles] danGetTypeNameAndRole(refType(str name)) = <true, name, {structId()}>;
