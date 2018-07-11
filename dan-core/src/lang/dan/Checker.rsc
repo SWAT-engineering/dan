@@ -782,7 +782,7 @@ void collectGenerator(Id loopVar, Expr source, Collector c) {
         if (listType(AType tp) := s.getType(source)) {
             return tp;
         }
-        s.report(error(source, "Expected a list type, got: %t <s.getType(source)> <source>", source));
+        s.report(error(source, "Expected a list type, got: %t", source));
     }));
 }
 
