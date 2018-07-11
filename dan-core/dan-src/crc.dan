@@ -1,4 +1,5 @@
 module crc
 
+// java classname
 @(engineering.swat.algorithms.CRC)
 int crc32(int x)
