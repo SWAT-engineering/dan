@@ -27,6 +27,7 @@ public class ParameterizedParse {
     @Parameter(4) public boolean result;
     @Parameter(5) public String format;
     @Parameter(6) public String fileName;
+    @Parameter(7) public long fileSize;
 
     @Test
     public void test() throws IOException {
@@ -37,6 +38,8 @@ public class ParameterizedParse {
         System.out.println("====================================================================================================");
         System.out.println();
     	assertEquals(result, graph.isPresent());
+    	if (graph.isPresent())
+    		assertEquals(fileSize, graph.get().offset.longValue());
     }
 
 }
