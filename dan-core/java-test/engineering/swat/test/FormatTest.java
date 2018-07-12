@@ -3,6 +3,7 @@ package engineering.swat.test;
 import static io.parsingdata.metal.util.EncodingFactory.enc;
 import static io.parsingdata.metal.util.ParseStateFactory.stream;
 
+import java.io.File;
 import java.io.IOException;
 import java.lang.reflect.Field;
 import java.net.MalformedURLException;
@@ -23,7 +24,7 @@ public class FormatTest extends ParameterizedParse {
 	
 	public static final String CONFIG_FILE_PATH = "/test-properties.json";
 
-    @Parameterized.Parameters(name="{0} ({5})")
+    @Parameterized.Parameters(name="{0} ({6})")
     public static Collection<Object[]> data() throws URISyntaxException, IOException {
     	return json2list(parseProperties(CONFIG_FILE_PATH));
     }
@@ -42,7 +43,10 @@ public class FormatTest extends ParameterizedParse {
 					Class clz = Class.forName("engineering.swat.formats." + formatAndTokenStart[0]);
 					Field f = clz.getField(formatAndTokenStart[1]);
 					String fileName = json.getJSONArray(format).getString(i);
-					list.add(new Object[]{ format + Integer.toString(i), (Token) f.get(null), parseState(formatAndTokenStart[0], "/" + fileName), enc(), true,  formatAndTokenStart[0], fileName});
+					long fileSize = getFileSize("/" + fileName);
+					System.out.println(fileSize);
+					list.add(new Object[]{ formatAndTokenStart[0], (Token) f.get(null), parseState(formatAndTokenStart[0], "/" + fileName), 
+							enc(), true,  formatAndTokenStart[0], fileName, fileSize});
 				} catch (ClassNotFoundException | SecurityException  | NoSuchFieldException | IllegalArgumentException | IllegalAccessException | JSONException e) {
 					e.printStackTrace();
 				} 
@@ -51,7 +55,11 @@ public class FormatTest extends ParameterizedParse {
     	return list;
     }
 
-    private static ParseState parseState(final String format, final String path) throws URISyntaxException, IOException {
+    private static long getFileSize(String path) {
+		return new File(FormatTest.class.getResource(path).getFile()).length();
+	}
+
+	private static ParseState parseState(final String format, final String path) throws URISyntaxException, IOException {
         return stream(FormatTest.class.getResource(path).toURI());
     }
 
