@@ -1,0 +1,65 @@
+module TCP_IP_with_structured_IPs
+
+struct IPPacket@(endianness = Endianness.BIG) {
+   IPHeader head
+   IPData data(head.totalSize, head.protocol)
+}
+
+struct IPHeader {
+    u8 versionAndLength ?((this & 0b1111_0000) == 4)
+    int headerLength = (versionAndLength & 0b1111) * 4
+    u8 _
+    u16 totalPacketLength 
+    int totalSize = totalPacketLength - headerLength
+    u16 identification
+    u16 fragmentFlagsAndOffset ?(this >>> 15 == 0)
+    u8 ttl
+    u8 protocol
+    u16 checksum
+    IPAddress srcAddress
+    IPAddress dstAddress
+    u8[] options [headerLength - (5 * 4)]
+}
+
+choice IPData(int size, int protocol) {
+    struct {
+        TCPSegment _(size) ?(protocol == 6)
+    }
+    struct {
+        UDPSegment _(size) ?(protocol == 17)
+    }
+}
+
+struct IPAddress{
+	u8 a
+	u8 b
+	u8 c
+	u8 d
+}
+
+struct TCPSegment(int size) {
+    TCPHeader head
+    u8[] data[size - head.size]
+}
+
+struct TCPHeader {
+    u16 srcPort 
+    u16 destPort
+    u32 sequence
+    u32 acknowledgement
+    u8 dataOffsetAndReserved ?((this & 0b1110) == 0)
+    int optionSize = ((dataOffsetAndReserved >>> 4) - 5) * 4
+
+    u8 flags ?( ((this & 0b1_0010) == 0b1_0000) || ((this & 0b1_0010) == 0b10)) // either syn or ack is set, but not both
+    bool syn = (flags & 0b10) != 0
+    bool ack = (flags & 0b1_0000) != 0
+    bool fin = (flags & 0b1) != 0
+
+    u16 windowSize 
+    u16 checksum
+    u16 urgentPointer
+    u8[] optionsAndPadding[optionSize]
+}
+
+struct UDPSegment(int size) {
+}
